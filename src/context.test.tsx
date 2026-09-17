@@ -101,9 +101,7 @@ describe("SteddyProvider", () => {
       { wrapper },
     );
     expect(result.current.data).toEqual({ name: "Ada" });
-    expect(client.store.get("user")?.timestamp).toBe(
-      payload.user.timestamp,
-    );
+    expect(client.store.get("user")?.timestamp).toBe(payload.user!.timestamp);
   });
 
   it("does not re-hydrate when cache is a new object with the same payload", () => {
@@ -133,7 +131,7 @@ describe("SteddyProvider", () => {
 function HookProbe({
   fetcher,
 }: {
-  fetcher: (key: string) => Promise<{ name: string }>;
+  fetcher: (key: import("./types").Key) => Promise<{ name: string }>;
 }) {
   useSteddy("user", fetcher);
   return null;

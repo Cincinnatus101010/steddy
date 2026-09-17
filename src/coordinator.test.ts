@@ -167,12 +167,14 @@ describe("coordinator", () => {
       store.set("old", {
         data: 1,
         error: undefined,
+        hasData: true,
         timestamp: Date.now() - 10_000,
         isValidating: false,
       });
       store.set("fresh", {
         data: 2,
         error: undefined,
+        hasData: true,
         timestamp: Date.now(),
         isValidating: false,
       });
@@ -182,6 +184,7 @@ describe("coordinator", () => {
       store.set("watched", {
         data: 3,
         error: undefined,
+        hasData: true,
         timestamp: Date.now() - 10_000,
         isValidating: false,
       });
@@ -206,18 +209,21 @@ describe("coordinator", () => {
     store.set("a", {
       data: 1,
       error: undefined,
+      hasData: true,
       timestamp: 1,
       isValidating: false,
     });
     store.set("b", {
       data: 2,
       error: undefined,
+      hasData: true,
       timestamp: 2,
       isValidating: false,
     });
     store.set("c", {
       data: 3,
       error: undefined,
+      hasData: true,
       timestamp: 3,
       isValidating: false,
     });

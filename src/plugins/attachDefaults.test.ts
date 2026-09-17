@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createCoordinator } from "../coordinator";
 import { createStore } from "../store";
 import { attachDefaults } from "./attachDefaults";

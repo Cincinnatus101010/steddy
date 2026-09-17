@@ -21,6 +21,7 @@ describe("store", () => {
     const entry = {
       data: { id: 1 },
       error: undefined,
+      hasData: true,
       timestamp: 10,
       isValidating: false,
     };
@@ -35,6 +36,7 @@ describe("store", () => {
     const entry = {
       data: { id: 1 },
       error: undefined,
+      hasData: true,
       timestamp: 1,
       isValidating: false,
     };
@@ -43,6 +45,7 @@ describe("store", () => {
     store.set("user", {
       data: entry.data,
       error: undefined,
+      hasData: true,
       timestamp: 1,
       isValidating: false,
     });
@@ -59,6 +62,7 @@ describe("store", () => {
     store.set("user", {
       data: 1,
       error: undefined,
+      hasData: true,
       timestamp: 1,
       isValidating: false,
     });
@@ -75,6 +79,7 @@ describe("store", () => {
     store.set("user", {
       data: 1,
       error: undefined,
+      hasData: true,
       timestamp: 1,
       isValidating: false,
     });
@@ -99,6 +104,7 @@ describe("store", () => {
     store.set("user", {
       data: 1,
       error: "boom",
+      hasData: true,
       timestamp: 5,
       isValidating: true,
     });
@@ -115,6 +121,7 @@ describe("store", () => {
     store.set("user", {
       data: 1,
       error: undefined,
+      hasData: true,
       timestamp: 1,
       isValidating: false,
     });
@@ -130,12 +137,14 @@ describe("store", () => {
     store.set("user", {
       data: 1,
       error: undefined,
+      hasData: true,
       timestamp: 1,
       isValidating: false,
     });
     store.set("other", {
       data: 2,
       error: undefined,
+      hasData: true,
       timestamp: 1,
       isValidating: false,
     });

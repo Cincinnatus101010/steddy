@@ -23,6 +23,7 @@ describe("mutate", () => {
     store.set("count", {
       data: 1,
       error: undefined,
+      hasData: true,
       timestamp: 1,
       isValidating: false,
     });
@@ -36,6 +37,7 @@ describe("mutate", () => {
     const mutate = createMutate(store, coordinator);
     const previous = {
       data: "old",
+      hasData: true,
       error: "saved-error",
       timestamp: 42,
       isValidating: false,
@@ -61,6 +63,7 @@ describe("mutate", () => {
     const mutate = createMutate(store, coordinator);
     const previous = {
       data: "old",
+      hasData: true,
       error: "saved-error",
       timestamp: 42,
       isValidating: false,
@@ -98,6 +101,7 @@ describe("mutate", () => {
     store.set("user", {
       data: "old",
       error: undefined,
+      hasData: true,
       timestamp: Date.now(),
       isValidating: false,
     });
