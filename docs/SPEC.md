@@ -26,6 +26,7 @@ Steddy is a stale-while-revalidate data-fetching library for React. It does the 
 | `npm run test:watch` | Vitest watch mode |
 | `npm run build` | Emit `dist/` |
 | `npm run typecheck` | `tsc --noEmit` |
+| `npm run bench` | Coordinator microbenchmarks (Vitest bench) |
 
 ## Project Structure
 
@@ -36,7 +37,7 @@ src/
   key.ts             # 2.3 — standalone
   mutate.ts          # 2.6 — store + coordinator
   useSteddy.ts       # 2.5 — runtime (store, coordinator, mutate)
-  context.tsx        # SteddyProvider, hydrate, clear, default runtime
+  context.tsx        # SteddyProvider, hydrate, prefetch, clear, default runtime
   defaults.ts        # singleton store + coordinator
   types.ts           # public types
   plugins/
@@ -75,7 +76,7 @@ const { data, error, isLoading, isValidating, mutate } = useSteddy(
 ## Boundaries
 
 - **Always:** keep dependency direction `plugins → coordinator → store`; `hooks` only call downward. Aborted requests never write to the store. Rollback on mutation error is on by default.
-- **Ask first:** GraphQL helpers, user-facing config knobs beyond `{ suspense: true }` and `{ keepPreviousData: true }`.
+- **Ask first:** GraphQL helpers, user-facing config knobs beyond `{ suspense: true }`, `{ keepPreviousData: true }`, and `{ staleTime }`.
 - **Never:** add `fetch` to `store.ts`; let two in-flight requests for the same key both write; import plugins from `useSteddy.ts`.
 
 ## Success Criteria
