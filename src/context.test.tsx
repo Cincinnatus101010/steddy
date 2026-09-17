@@ -6,6 +6,7 @@ import {
   dump,
   hydrate,
   hydrateAll,
+  prefetch,
   SteddyProvider,
 } from "./context";
 import { createCoordinator } from "./coordinator";
@@ -31,6 +32,15 @@ describe("hydrate", () => {
     await waitFor(() => {
       expect(result.current.data).toEqual({ name: "server" });
     });
+  });
+});
+
+describe("prefetch", () => {
+  it("loads data into the cache without a mounted hook", async () => {
+    const runtime = createRuntime();
+    await prefetch("user", async () => ({ name: "Ada" }), runtime);
+    expect(runtime.store.get("user")?.data).toEqual({ name: "Ada" });
+    expect(runtime.coordinator.getRegisteredKeys()).toEqual([]);
   });
 });
 

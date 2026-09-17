@@ -11,6 +11,7 @@ export {
   hydrate,
   hydrateAll,
   dump,
+  prefetch,
   clear,
 } from "./context";
 export { focusRevalidate } from "./plugins/focus";

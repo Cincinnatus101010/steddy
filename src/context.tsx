@@ -2,7 +2,7 @@ import { createCoordinator, type Coordinator } from "./coordinator";
 import { createMutate } from "./mutate";
 import { defaultCoordinator, defaultStore } from "./defaults";
 import { createStore, type Store } from "./store";
-import type { CacheSnapshot, Key } from "./types";
+import type { CacheSnapshot, Fetcher, Key } from "./types";
 import { serializeKey } from "./key";
 import {
   createContext,
@@ -114,6 +114,23 @@ export function hydrateAll(
       timestamp: payload.timestamp,
       isValidating: false,
     });
+  }
+}
+
+/** Warm a key without mounting a hook. Leaves data in the cache when the fetch completes. */
+export async function prefetch<T>(
+  key: Key,
+  fetcher: Fetcher<T>,
+  runtime: Pick<SteddyRuntime, "store" | "coordinator"> = defaultRuntime,
+): Promise<void> {
+  const serialized = serializeKey(key);
+  runtime.coordinator.register(serialized, key, fetcher as Fetcher<unknown>);
+  try {
+    await runtime.coordinator.revalidate(serialized);
+  } catch {
+    // Errors remain on the cache entry for a later hook mount.
+  } finally {
+    runtime.coordinator.unregister(serialized);
   }
 }
 
