@@ -75,7 +75,7 @@ const { data, error, isLoading, isValidating, mutate } = useSteddy(
 ## Boundaries
 
 - **Always:** keep dependency direction `plugins → coordinator → store`; `hooks` only call downward. Aborted requests never write to the store. Rollback on mutation error is on by default.
-- **Ask first:** GraphQL helpers, user-facing config knobs beyond `{ suspense: true }`.
+- **Ask first:** GraphQL helpers, user-facing config knobs beyond `{ suspense: true }` and `{ keepPreviousData: true }`.
 - **Never:** add `fetch` to `store.ts`; let two in-flight requests for the same key both write; import plugins from `useSteddy.ts`.
 
 ## Success Criteria

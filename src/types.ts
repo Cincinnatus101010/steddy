@@ -37,6 +37,7 @@ export type MutateFn<T> = (
 
 export type UseSteddyOptions = {
   suspense?: boolean;
+  keepPreviousData?: boolean;
 };
 
 export type CacheSnapshot = {

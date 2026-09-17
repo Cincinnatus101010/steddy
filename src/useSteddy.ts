@@ -92,11 +92,29 @@ export function useSteddy<T>(
     [runtimeMutate],
   );
 
+  const keepPreviousData = options?.keepPreviousData === true;
+  const previousRef = useRef<{ serialized: string; data: T } | undefined>(
+    undefined,
+  );
+  if (serialized != null && snapshot.data !== undefined) {
+    previousRef.current = { serialized, data: snapshot.data as T };
+  }
+
+  const data =
+    keepPreviousData &&
+    serialized != null &&
+    snapshot.data === undefined &&
+    snapshot.error == null &&
+    previousRef.current != null &&
+    previousRef.current.serialized !== serialized
+      ? previousRef.current.data
+      : (snapshot.data as T | undefined);
+
   if (options?.suspense && serialized != null) {
     if (snapshot.error != null) {
       throw snapshot.error;
     }
-    if (snapshot.data === undefined) {
+    if (snapshot.data === undefined && data === undefined) {
       const waiter =
         coordinator.getInFlightPromise(serialized) ??
         coordinator.revalidate(serialized).catch(() => {});
@@ -105,12 +123,10 @@ export function useSteddy<T>(
   }
 
   return {
-    data: snapshot.data as T | undefined,
+    data,
     error: snapshot.error,
     isLoading:
-      serialized != null &&
-      snapshot.data === undefined &&
-      snapshot.error == null,
+      serialized != null && data === undefined && snapshot.error == null,
     isValidating: snapshot.isValidating,
     mutate: boundMutate,
   };

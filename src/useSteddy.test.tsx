@@ -112,6 +112,59 @@ describe("useSteddy", () => {
     ]);
   });
 
+  it("drops data on key change unless keepPreviousData is set", async () => {
+    const { result, rerender } = renderHook(
+      ({ id }: { id: number }) =>
+        useSteddy(["user", id], async ([, userId]) => `user-${userId}`),
+      { initialProps: { id: 1 } },
+    );
+    await waitFor(() => {
+      expect(result.current.data).toBe("user-1");
+    });
+    rerender({ id: 2 });
+    expect(result.current.data).toBeUndefined();
+    expect(result.current.isLoading).toBe(true);
+    await waitFor(() => {
+      expect(result.current.data).toBe("user-2");
+    });
+  });
+
+  it("keeps the last value while the next key loads", async () => {
+    const pending = new Map<number, (value: string) => void>();
+    const { result, rerender } = renderHook(
+      ({ id }: { id: number }) =>
+        useSteddy(
+          ["user", id],
+          ([, userId]) =>
+            new Promise<string>((resolve) => {
+              pending.set(userId as number, resolve);
+            }),
+          { keepPreviousData: true },
+        ),
+      { initialProps: { id: 1 } },
+    );
+
+    await act(async () => {
+      pending.get(1)?.("user-1");
+    });
+    await waitFor(() => {
+      expect(result.current.data).toBe("user-1");
+    });
+
+    rerender({ id: 2 });
+    expect(result.current.data).toBe("user-1");
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isValidating).toBe(true);
+
+    await act(async () => {
+      pending.get(2)?.("user-2");
+    });
+    await waitFor(() => {
+      expect(result.current.data).toBe("user-2");
+    });
+    expect(result.current.isValidating).toBe(false);
+  });
+
   it("isLoading is true until the first value or error arrives", async () => {
     const { result } = renderHook(() =>
       useSteddy("user", () => new Promise<string>(() => {})),
