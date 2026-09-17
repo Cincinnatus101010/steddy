@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "steddy": {
-      "command": "node",
-      "args": ["/absolute/path/to/steddy/mcp/dist/index.js"]
-    }
-  }
-}

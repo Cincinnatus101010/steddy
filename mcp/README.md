@@ -14,20 +14,33 @@ Run from the **steddy repo root** so relative paths resolve (`README.md`, `docs/
 
 ## Cursor
 
-Add to `.cursor/mcp.json` (project) or Cursor MCP settings:
+**Library clone** (`.cursor/mcp.json` at repo root):
 
 ```json
 {
   "mcpServers": {
     "steddy": {
       "command": "node",
-      "args": ["/absolute/path/to/steddy/mcp/dist/index.js"]
+      "args": ["mcp/dist/index.js"]
     }
   }
 }
 ```
 
-Replace the path with your clone location. Rebuild after pulling doc changes.
+**Docs site clone** (sibling checkout):
+
+```json
+{
+  "mcpServers": {
+    "steddy": {
+      "command": "node",
+      "args": ["../steddy/mcp/dist/index.js"]
+    }
+  }
+}
+```
+
+Adjust the relative path if your folders differ. Rebuild `mcp/` after pulling doc changes.
 
 ## Tools
 

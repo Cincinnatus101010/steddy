@@ -15,7 +15,7 @@ const TopicSchema = z.enum(DOC_IDS as [DocId, ...DocId[]]);
 const server = new McpServer({
   name: "steddy",
   version: "0.1.0",
-  websiteUrl: "https://cincinnatus101010.github.io/steddyweb/docs",
+  websiteUrl: "https://cincinnatus101010.github.io/steddyweb/docs/api",
 });
 
 for (const entry of DOC_ENTRIES) {
