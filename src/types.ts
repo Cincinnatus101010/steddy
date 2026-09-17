@@ -10,6 +10,8 @@ export type Key = string | readonly [string, ...Serializable[]];
 
 export type CacheEntry<T = unknown> = {
   data: T | undefined;
+  /** True once a fetch or mutate settled successfully, even when data is undefined. */
+  hasData: boolean;
   error: unknown;
   timestamp: number;
   isValidating: boolean;

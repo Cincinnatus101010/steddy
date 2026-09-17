@@ -41,6 +41,7 @@ export function createMutate(store: Store, coordinator: Coordinator) {
       if (isThenable(next)) {
         store.set(serialized, {
           data: currentData,
+          hasData: previous?.hasData ?? false,
           error: previous?.error,
           timestamp: previous?.timestamp ?? 0,
           isValidating: true,
@@ -48,6 +49,7 @@ export function createMutate(store: Store, coordinator: Coordinator) {
         const resolved = await next;
         store.set(serialized, {
           data: resolved,
+          hasData: true,
           error: undefined,
           timestamp: Date.now(),
           isValidating: revalidate,
@@ -55,6 +57,7 @@ export function createMutate(store: Store, coordinator: Coordinator) {
       } else {
         store.set(serialized, {
           data: next,
+          hasData: true,
           error: undefined,
           timestamp: Date.now(),
           isValidating: revalidate,
@@ -73,6 +76,7 @@ export function createMutate(store: Store, coordinator: Coordinator) {
         const current = store.get(serialized);
         store.set(serialized, {
           data: current?.data,
+          hasData: current?.hasData ?? false,
           error,
           timestamp: current?.timestamp ?? Date.now(),
           isValidating: false,

@@ -206,9 +206,21 @@ describe("useSteddy", () => {
     expect(result.current.data).toBeUndefined();
   });
 
+  it("settles when the fetcher returns undefined", async () => {
+    const { result } = renderHook(() =>
+      useSteddy("empty", async () => undefined),
+    );
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+    expect(result.current.data).toBeUndefined();
+    expect(defaultStore.get("empty")?.hasData).toBe(true);
+  });
+
   it("honors staleTime before refetching on mount", async () => {
     defaultStore.set("user", {
       data: "cached",
+      hasData: true,
       error: undefined,
       timestamp: Date.now(),
       isValidating: false,

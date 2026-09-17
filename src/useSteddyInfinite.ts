@@ -122,7 +122,7 @@ export function useSteddyInfinite<T>(
     const fingerprint = currentPages
       .map((page) => {
         const entry = store.getSnapshot(page.serialized);
-        return `${page.serialized}:${entry.timestamp}:${entry.isValidating ? 1 : 0}:${entry.error == null ? 0 : 1}:${entry.data === undefined ? 0 : 1}`;
+        return `${page.serialized}:${entry.timestamp}:${entry.isValidating ? 1 : 0}:${entry.error == null ? 0 : 1}:${entry.hasData ? 1 : 0}`;
       })
       .join("|");
     if (snapshotRef.current.fingerprint === fingerprint) {
@@ -140,7 +140,7 @@ export function useSteddyInfinite<T>(
       if (entry.error != null && error === undefined) {
         error = entry.error;
       }
-      if (entry.data === undefined) {
+      if (!entry.hasData) {
         missing = true;
         break;
       }
@@ -220,6 +220,7 @@ export function useSteddyInfinite<T>(
           }
           store.set(page.serialized, {
             data: pagesValue[index],
+            hasData: true,
             error: undefined,
             timestamp: Date.now(),
             isValidating: revalidate,
@@ -257,7 +258,7 @@ export function useSteddyInfinite<T>(
     error: snapshot.error,
     isLoading:
       first != null &&
-      firstEntry?.data === undefined &&
+      !firstEntry?.hasData &&
       firstEntry?.error == null,
     isValidating: snapshot.isValidating,
     size,

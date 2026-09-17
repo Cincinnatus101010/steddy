@@ -105,14 +105,14 @@ export function useSteddy<T>(
   const previousRef = useRef<{ serialized: string; data: T } | undefined>(
     undefined,
   );
-  if (serialized != null && snapshot.data !== undefined) {
+  if (serialized != null && snapshot.hasData) {
     previousRef.current = { serialized, data: snapshot.data as T };
   }
 
   const data =
     keepPreviousData &&
     serialized != null &&
-    snapshot.data === undefined &&
+    !snapshot.hasData &&
     snapshot.error == null &&
     previousRef.current != null &&
     previousRef.current.serialized !== serialized
@@ -123,7 +123,7 @@ export function useSteddy<T>(
     if (snapshot.error != null) {
       throw snapshot.error;
     }
-    if (snapshot.data === undefined && data === undefined) {
+    if (!snapshot.hasData && data === undefined) {
       const waiter =
         coordinator.getInFlightPromise(serialized) ??
         coordinator.revalidate(serialized).catch(() => {});
@@ -135,7 +135,10 @@ export function useSteddy<T>(
     data,
     error: snapshot.error,
     isLoading:
-      serialized != null && data === undefined && snapshot.error == null,
+      serialized != null &&
+      !snapshot.hasData &&
+      snapshot.error == null &&
+      data === undefined,
     isValidating: snapshot.isValidating,
     mutate: boundMutate,
   };

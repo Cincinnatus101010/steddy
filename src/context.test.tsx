@@ -38,6 +38,7 @@ describe("clear", () => {
   it("removes a key and aborts in-flight work", () => {
     defaultStore.set("user", {
       data: "stale",
+      hasData: true,
       error: undefined,
       timestamp: 1,
       isValidating: true,
@@ -133,12 +134,14 @@ describe("dump", () => {
     const store = createStore();
     store.set("user", {
       data: { name: "Ada" },
+      hasData: true,
       error: new Error("stale"),
       timestamp: 9,
       isValidating: true,
     });
     store.set("empty", {
       data: undefined,
+      hasData: false,
       error: undefined,
       timestamp: 1,
       isValidating: false,

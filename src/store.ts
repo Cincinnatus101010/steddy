@@ -17,6 +17,7 @@ export type Store = {
 
 export const EMPTY_SNAPSHOT: CacheEntry = Object.freeze({
   data: undefined,
+  hasData: false,
   error: undefined,
   timestamp: 0,
   isValidating: false,
@@ -46,6 +47,7 @@ export function createStore(): Store {
       if (
         existing &&
         Object.is(existing.data, entry.data) &&
+        existing.hasData === entry.hasData &&
         existing.error === entry.error &&
         existing.timestamp === entry.timestamp &&
         existing.isValidating === entry.isValidating

@@ -81,6 +81,7 @@ export function useSteddyRuntime(): SteddyRuntime {
 export function hydrate<T>(key: Key, data: T, store: Store = defaultStore): void {
   store.set(serializeKey(key), {
     data,
+    hasData: true,
     error: undefined,
     timestamp: 0,
     isValidating: false,
@@ -92,7 +93,7 @@ export function dump(store: Store = defaultStore): CacheSnapshot {
   const snapshot: Record<string, { data: unknown; timestamp: number }> = {};
   for (const key of store.keys()) {
     const entry = store.get(key);
-    if (!entry || entry.data === undefined) {
+    if (!entry?.hasData) {
       continue;
     }
     snapshot[key] = { data: entry.data, timestamp: entry.timestamp };
@@ -108,6 +109,7 @@ export function hydrateAll(
   for (const [key, payload] of Object.entries(snapshot)) {
     store.set(key, {
       data: payload.data,
+      hasData: true,
       error: undefined,
       timestamp: payload.timestamp,
       isValidating: false,

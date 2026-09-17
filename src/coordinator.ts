@@ -149,7 +149,7 @@ export function createCoordinator(store: Store): Coordinator {
           entry &&
           !entry.isValidating &&
           entry.error == null &&
-          entry.data !== undefined &&
+          entry.hasData &&
           Date.now() - entry.timestamp < staleTime
         ) {
           emit({ type: "dedup", key: serializedKey });
@@ -192,6 +192,7 @@ export function createCoordinator(store: Store): Coordinator {
       const previous = store.get(serializedKey);
       store.set(serializedKey, {
         data: previous?.data,
+        hasData: previous?.hasData ?? false,
         error: previous?.error,
         timestamp: previous?.timestamp ?? 0,
         isValidating: true,
@@ -207,6 +208,7 @@ export function createCoordinator(store: Store): Coordinator {
         inflight.delete(serializedKey);
         store.set(serializedKey, {
           data,
+          hasData: true,
           error: undefined,
           timestamp: Date.now(),
           isValidating: false,
@@ -226,6 +228,7 @@ export function createCoordinator(store: Store): Coordinator {
         const current = store.get(serializedKey);
         store.set(serializedKey, {
           data: current?.data,
+          hasData: current?.hasData ?? false,
           error,
           timestamp: current?.timestamp ?? 0,
           isValidating: false,
