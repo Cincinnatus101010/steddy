@@ -73,8 +73,22 @@ export function SteddyProvider({
   return <SteddyContext.Provider value={value}>{children}</SteddyContext.Provider>;
 }
 
+let warnedDefaultOnServer = false;
+
 export function useSteddyRuntime(): SteddyRuntime {
-  return useContext(SteddyContext);
+  const runtime = useContext(SteddyContext);
+  if (
+    process.env.NODE_ENV !== "production" &&
+    typeof window === "undefined" &&
+    runtime === defaultRuntime &&
+    !warnedDefaultOnServer
+  ) {
+    warnedDefaultOnServer = true;
+    console.warn(
+      "[steddy] useSteddy on the server without SteddyProvider shares one cache across requests. Use createRuntime() per request.",
+    );
+  }
+  return runtime;
 }
 
 /** Seed the cache so the next render can show data immediately. Timestamp is 0 so mount still revalidates. */
