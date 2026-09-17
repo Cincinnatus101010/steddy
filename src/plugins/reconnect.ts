@@ -1,3 +1,5 @@
+import { keysWithSubscribers, type SubscribedStore } from "./subscribedKeys";
+
 export type ReconnectCoordinator = {
   revalidate(key: string): Promise<void>;
   getRegisteredKeys(): string[];
@@ -5,9 +7,13 @@ export type ReconnectCoordinator = {
 
 export function reconnectRevalidate(
   coordinator: ReconnectCoordinator,
+  store?: SubscribedStore,
 ): () => void {
   const onOnline = (): void => {
-    for (const key of coordinator.getRegisteredKeys()) {
+    const keys = store
+      ? keysWithSubscribers(coordinator.getRegisteredKeys(), store)
+      : coordinator.getRegisteredKeys();
+    for (const key of keys) {
       void coordinator.revalidate(key);
     }
   };
