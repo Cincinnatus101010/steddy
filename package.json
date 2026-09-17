@@ -1,0 +1,57 @@
+{
+  "name": "skeg",
+  "version": "0.1.0",
+  "description": "Stale-while-revalidate data fetching for React, with strict layer separation.",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^24.5.2",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "esbuild": "^0.25.9",
+    "jsdom": "^26.1.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "license": "MIT",
+  "author": "Ian Troisi",
+  "homepage": "https://github.com/Cincinnatus101010/skeg#readme",
+  "bugs": {
+    "url": "https://github.com/Cincinnatus101010/skeg/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Cincinnatus101010/skeg.git"
+  },
+  "keywords": [
+    "react",
+    "swr",
+    "data-fetching",
+    "cache",
+    "hooks"
+  ]
+}
