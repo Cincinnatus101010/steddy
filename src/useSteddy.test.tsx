@@ -206,6 +206,26 @@ describe("useSteddy", () => {
     expect(result.current.data).toBeUndefined();
   });
 
+  it("honors staleTime before refetching on mount", async () => {
+    defaultStore.set("user", {
+      data: "cached",
+      error: undefined,
+      timestamp: Date.now(),
+      isValidating: false,
+    });
+    defaultCoordinator.register("user", "user", async () => "fresh");
+    const fetcher = vi.fn(async () => "fresh");
+    const { unmount } = renderHook(() =>
+      useSteddy("user", fetcher, { staleTime: 60_000 }),
+    );
+    await waitFor(() => {
+      expect(fetcher).not.toHaveBeenCalled();
+    });
+    unmount();
+    renderHook(() => useSteddy("user", fetcher, { staleTime: 60_000 }));
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   it("does not import plugins", async () => {
     const { readFileSync } = await import("node:fs");
     const { dirname, join } = await import("node:path");

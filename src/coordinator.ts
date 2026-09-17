@@ -15,8 +15,17 @@ export type CoordinatorEvent =
   | { type: "write"; key: string; ms: number }
   | { type: "error"; key: string; ms: number };
 
+export type RegisterOptions = {
+  staleTime?: number;
+};
+
 export type Coordinator = {
-  register(serializedKey: string, key: Key, fetcher: Fetcher<unknown>): void;
+  register(
+    serializedKey: string,
+    key: Key,
+    fetcher: Fetcher<unknown>,
+    options?: RegisterOptions,
+  ): void;
   unregister(serializedKey: string): void;
   scheduleRelease(serializedKey: string): void;
   revalidate(
@@ -57,7 +66,7 @@ function isAbortError(error: unknown): boolean {
 export function createCoordinator(store: Store): Coordinator {
   const registered = new Map<
     string,
-    { key: Key; fetcher: Fetcher<unknown> }
+    { key: Key; fetcher: Fetcher<unknown>; staleTime: number }
   >();
   const inflight = new Map<string, InFlight>();
   const releaseTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -104,9 +113,13 @@ export function createCoordinator(store: Store): Coordinator {
   }
 
   const coordinator: Coordinator = {
-    register(serializedKey, key, fetcher) {
+    register(serializedKey, key, fetcher, options) {
       cancelRelease(serializedKey);
-      registered.set(serializedKey, { key, fetcher });
+      registered.set(serializedKey, {
+        key,
+        fetcher,
+        staleTime: options?.staleTime ?? DEDUP_WINDOW_MS,
+      });
     },
 
     unregister(serializedKey) {
@@ -130,12 +143,14 @@ export function createCoordinator(store: Store): Coordinator {
     async revalidate(serializedKey, fetcher, options) {
       if (!options?.force) {
         const entry = store.get(serializedKey);
+        const staleTime =
+          registered.get(serializedKey)?.staleTime ?? DEDUP_WINDOW_MS;
         if (
           entry &&
           !entry.isValidating &&
           entry.error == null &&
           entry.data !== undefined &&
-          Date.now() - entry.timestamp < DEDUP_WINDOW_MS
+          Date.now() - entry.timestamp < staleTime
         ) {
           emit({ type: "dedup", key: serializedKey });
           return;

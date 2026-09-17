@@ -38,6 +38,8 @@ export type MutateFn<T> = (
 export type UseSteddyOptions = {
   suspense?: boolean;
   keepPreviousData?: boolean;
+  /** Ms before a cached value is treated as stale. Defaults to DEDUP_WINDOW_MS (2000). */
+  staleTime?: number;
 };
 
 export type CacheSnapshot = {

@@ -1,4 +1,5 @@
 import { useCallback, useRef, useSyncExternalStore } from "react";
+import { DEDUP_WINDOW_MS } from "./coordinator";
 import { useSteddyRuntime } from "./context";
 import { keysShallowEqual, serializeKey } from "./key";
 import { EMPTY_SNAPSHOT } from "./store";
@@ -40,10 +41,16 @@ export function useSteddy<T>(
   fetcherRef.current = fetcher;
   const keyRef = useRef(key);
   keyRef.current = key;
+  const staleTime = options?.staleTime ?? DEDUP_WINDOW_MS;
+  const staleTimeRef = useRef(staleTime);
+  staleTimeRef.current = staleTime;
 
   if (serialized != null && key != null) {
-    coordinator.register(serialized, key, (k, ctx) =>
-      fetcherRef.current(k, ctx),
+    coordinator.register(
+      serialized,
+      key,
+      (k, ctx) => fetcherRef.current(k, ctx),
+      { staleTime: staleTimeRef.current },
     );
   }
 
@@ -53,8 +60,11 @@ export function useSteddy<T>(
         return () => {};
       }
       const originalKey = keyRef.current;
-      coordinator.register(serialized, originalKey, (k, ctx) =>
-        fetcherRef.current(k, ctx),
+      coordinator.register(
+        serialized,
+        originalKey,
+        (k, ctx) => fetcherRef.current(k, ctx),
+        { staleTime: staleTimeRef.current },
       );
       const unsubscribe = store.subscribe(serialized, onStoreChange);
       if (!coordinator.isInFlight(serialized)) {
