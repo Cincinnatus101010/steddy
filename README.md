@@ -1,20 +1,20 @@
-# skeg
+# leeboard
 
 Stale-while-revalidate data fetching for React. Same job as `useSWR`, rebuilt with one-way layers so reliability bugs cannot leak across concerns.
 
-A skeg is the fin that keeps a hull tracking straight. This library does that for in-flight fetches.
+A leeboard is the pivoting fin that keeps a hull from sliding sideways. This library does that for in-flight fetches.
 
-Explainer: [https://cincinnatus101010.github.io/skegweb/](https://cincinnatus101010.github.io/skegweb/)
+Explainer: [https://cincinnatus101010.github.io/leeboardweb/](https://cincinnatus101010.github.io/leeboardweb/)
 
 ```bash
-npm install skeg
+npm install leeboard
 ```
 
 ```ts
-import { useSkeg } from "skeg";
+import { useLeeboard } from "leeboard";
 
 function Profile({ id }: { id: string }) {
-  const { data, error, isLoading, isValidating, mutate } = useSkeg(
+  const { data, error, isLoading, isValidating, mutate } = useLeeboard(
     ["user", id],
     async ([, userId], { signal }) => {
       const response = await fetch(`/api/users/${userId}`, { signal });
@@ -38,14 +38,14 @@ function Profile({ id }: { id: string }) {
 `key === null` skips fetching. Plugins (`focusRevalidate`, `reconnectRevalidate`, `pollingRevalidate`, `retryOnError`) are opt-in named exports.
 
 ```ts
-import { defaultCoordinator, focusRevalidate, hydrate, clear } from "skeg";
+import { defaultCoordinator, focusRevalidate, hydrate, clear } from "leeboard";
 
 hydrate("user", { name: "Ada" });
 focusRevalidate(defaultCoordinator);
 clear("user");
 ```
 
-Need an isolated cache (tests, multiple trees): wrap with `SkegProvider` and pass `createStore()` + `createCoordinator(store)`.
+Need an isolated cache (tests, multiple trees, SSR): wrap with `LeeboardProvider` and pass `createStore()` + `createCoordinator(store)`, or `createRuntime()`. Pass `cache={dump(store)}` across an RSC boundary. `{ suspense: true }` throws the in-flight waiter. `useLeeboardInfinite` keeps one cache entry per page. `ttlEvict` drops unused keys.
 
 ## Architecture
 

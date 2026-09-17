@@ -103,6 +103,24 @@ describe("store", () => {
     expect(store.get("user")).toBeUndefined();
     expect(callback).toHaveBeenCalledTimes(1);
   });
+
+  it("lists keys currently in the map", () => {
+    const store = createStore();
+    expect(store.keys()).toEqual([]);
+    store.set("user", {
+      data: 1,
+      error: undefined,
+      timestamp: 1,
+      isValidating: false,
+    });
+    store.set("other", {
+      data: 2,
+      error: undefined,
+      timestamp: 1,
+      isValidating: false,
+    });
+    expect(store.keys().sort()).toEqual(["other", "user"]);
+  });
 });
 
 describe("store layer isolation", () => {
@@ -117,6 +135,6 @@ describe("store layer isolation", () => {
     expect(src).not.toMatch(/\bwindow\b/);
     expect(src).not.toMatch(/\bdocument\b/);
     expect(src).not.toMatch(/\bnavigator\b/);
-    expect(src).not.toMatch(/from ["'].*(coordinator|plugins|react|mutate|useSkeg)/);
+    expect(src).not.toMatch(/from ["'].*(coordinator|plugins|react|mutate|useLeeboard)/);
   });
 });

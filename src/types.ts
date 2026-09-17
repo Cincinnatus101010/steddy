@@ -35,9 +35,23 @@ export type MutateFn<T> = (
   options?: MutateOptions,
 ) => Promise<T | undefined>;
 
-export type UseSkegOptions = Record<string, never>;
+export type UseLeeboardOptions = {
+  suspense?: boolean;
+};
 
-export type UseSkegResult<T> = {
+export type CacheSnapshot = {
+  readonly [serializedKey: string]: {
+    readonly data: unknown;
+    readonly timestamp: number;
+  };
+};
+
+export type EvictOptions = {
+  maxAge?: number;
+  maxKeys?: number;
+};
+
+export type UseLeeboardResult<T> = {
   data: T | undefined;
   error: unknown;
   isLoading: boolean;

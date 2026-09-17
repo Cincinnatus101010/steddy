@@ -1,13 +1,13 @@
 import { useCallback, useRef, useSyncExternalStore } from "react";
-import { useSkegRuntime } from "./context";
+import { useLeeboardRuntime } from "./context";
 import { keysShallowEqual, serializeKey } from "./key";
 import { EMPTY_SNAPSHOT } from "./store";
 import type {
   Fetcher,
   Key,
   MutateFn,
-  UseSkegOptions,
-  UseSkegResult,
+  UseLeeboardOptions,
+  UseLeeboardResult,
 } from "./types";
 
 function useSerializedKey(key: Key | null): string | null {
@@ -29,17 +29,23 @@ function useSerializedKey(key: Key | null): string | null {
   return prevSerialized.current;
 }
 
-export function useSkeg<T>(
+export function useLeeboard<T>(
   key: Key | null,
   fetcher: Fetcher<T>,
-  _options?: UseSkegOptions,
-): UseSkegResult<T> {
-  const { store, coordinator, mutate: runtimeMutate } = useSkegRuntime();
+  options?: UseLeeboardOptions,
+): UseLeeboardResult<T> {
+  const { store, coordinator, mutate: runtimeMutate } = useLeeboardRuntime();
   const serialized = useSerializedKey(key);
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
   const keyRef = useRef(key);
   keyRef.current = key;
+
+  if (serialized != null && key != null) {
+    coordinator.register(serialized, key, (k, ctx) =>
+      fetcherRef.current(k, ctx),
+    );
+  }
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
@@ -72,19 +78,31 @@ export function useSkeg<T>(
     return store.getSnapshot(serialized);
   }, [serialized, store]);
 
-  // Third argument avoids a server-render throw; v1 does not implement SSR.
+  // Same snapshot on the server so a dumped cache can render without a mismatch.
   // Source: https://react.dev/reference/react/useSyncExternalStore
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   const boundMutate = useCallback<MutateFn<T>>(
-    (updater, options) => {
+    (updater, mutateOptions) => {
       if (keyRef.current == null) {
         return Promise.resolve(undefined);
       }
-      return runtimeMutate(keyRef.current, updater, options);
+      return runtimeMutate(keyRef.current, updater, mutateOptions);
     },
     [runtimeMutate],
   );
+
+  if (options?.suspense && serialized != null) {
+    if (snapshot.error != null) {
+      throw snapshot.error;
+    }
+    if (snapshot.data === undefined) {
+      const waiter =
+        coordinator.getInFlightPromise(serialized) ??
+        coordinator.revalidate(serialized).catch(() => {});
+      throw waiter;
+    }
+  }
 
   return {
     data: snapshot.data as T | undefined,

@@ -1,14 +1,14 @@
-# Spec: Skeg
+# Spec: Leeboard
 
-The product is **Skeg**. The npm package is **`skeg`**.
+The product is **Leeboard**. The npm package is **`leeboard`**.
 
 ## Objective
 
-Skeg is a stale-while-revalidate data-fetching library for React. It does the same job as `useSWR`, rebuilt with strict one-way layering so reliability bugs cannot leak across concerns.
+Leeboard is a stale-while-revalidate data-fetching library for React. It does the same job as `useSWR`, rebuilt with strict one-way layering so reliability bugs cannot leak across concerns.
 
 **Success:** the reliability checklist in this spec is covered by tests, the public hook is thin, and plugins are tree-shaken when unused.
 
-**Non-goals for v1:** SSR/RSC integration, GraphQL helpers, infinite/pagination helpers, suspense mode.
+**Non-goals for v1:** GraphQL helpers. SSR dump/hydrate, suspense, infinite pages, and TTL eviction are in.
 
 ## Tech Stack
 
@@ -35,8 +35,8 @@ src/
   coordinator.ts     # 2.2 — imports store types/instances only
   key.ts             # 2.3 — standalone
   mutate.ts          # 2.6 — store + coordinator
-  useSkeg.ts         # 2.5 — runtime (store, coordinator, mutate)
-  context.tsx        # SkegProvider, hydrate, clear, default runtime
+  useLeeboard.ts         # 2.5 — runtime (store, coordinator, mutate)
+  context.tsx        # LeeboardProvider, hydrate, clear, default runtime
   defaults.ts        # singleton store + coordinator
   types.ts           # public types
   plugins/
@@ -54,7 +54,7 @@ docs/
 ## Code Style
 
 ```ts
-const { data, error, isLoading, isValidating, mutate } = useSkeg(
+const { data, error, isLoading, isValidating, mutate } = useLeeboard(
   ['user', id],
   (key) => fetchUser(key[1]),
 );
@@ -62,7 +62,7 @@ const { data, error, isLoading, isValidating, mutate } = useSkeg(
 
 - Named exports only. No default export.
 - Layers may not import upward. Plugins never import the store.
-- `error` is `unknown`. Fetchers throw whatever they throw; Skeg does not wrap it.
+- `error` is `unknown`. Fetchers throw whatever they throw; Leeboard does not wrap it.
 
 ## Testing Strategy
 
@@ -70,13 +70,13 @@ const { data, error, isLoading, isValidating, mutate } = useSkeg(
 - Coordinator tests cover abort-vs-race and last-subscriber abort.
 - Hook tests via `renderHook` for subscribe/unmount behavior.
 - Plugin tests with a mock coordinator and no React.
-- One esbuild tree-shake test: `import { useSkeg }` must not contain plugin implementations.
+- One esbuild tree-shake test: `import { useLeeboard }` must not contain plugin implementations.
 
 ## Boundaries
 
 - **Always:** keep dependency direction `plugins → coordinator → store`; `hooks` only call downward. Aborted requests never write to the store. Rollback on mutation error is on by default.
-- **Ask first:** SSR, suspense, pagination, user-facing config knobs, cache eviction.
-- **Never:** add `fetch` to `store.ts`; let two in-flight requests for the same key both write; import plugins from `useSkeg.ts`.
+- **Ask first:** GraphQL helpers, user-facing config knobs beyond `{ suspense: true }`.
+- **Never:** add `fetch` to `store.ts`; let two in-flight requests for the same key both write; import plugins from `useLeeboard.ts`.
 
 ## Success Criteria
 
@@ -84,12 +84,12 @@ const { data, error, isLoading, isValidating, mutate } = useSkeg(
 2. Last subscriber unmount aborts in-flight work; no throw; store is not updated by the aborted request.
 3. Failed optimistic mutation restores the exact prior `CacheEntry`, including `error`.
 4. Store tests pass with coordinator/plugins absent from the import graph.
-5. Bundling only `useSkeg` excludes focus/reconnect/polling/retry code.
+5. Bundling only `useLeeboard` excludes focus/reconnect/polling/retry code.
 
 ## Resolved v1 Decisions
 
 See `docs/decisions/001-v1-open-questions.md`.
 
-- Cache: no eviction. Last-subscriber unmount aborts in-flight requests only.
+- Cache: TTL/`maxKeys` eviction is a plugin (`ttlEvict`) calling `coordinator.evict`. Unused keys only — never in-flight or subscribed.
 - `mutate` is a global export against the singleton store/coordinator. The hook also returns a key-bound `mutate`.
-- `error` stays `unknown`. No `SkegError` wrapper.
+- `error` stays `unknown`. No `LeeboardError` wrapper.

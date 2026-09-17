@@ -1,4 +1,4 @@
-import type { Fetcher, Key } from "./types";
+import type { EvictOptions, Fetcher, Key } from "./types";
 import type { Store } from "./store";
 
 export const DEDUP_WINDOW_MS = 2000;
@@ -16,14 +16,18 @@ export type Coordinator = {
     options?: RevalidateOptions,
   ): Promise<void>;
   isInFlight(serializedKey: string): boolean;
+  getInFlightPromise(serializedKey: string): Promise<void> | undefined;
   getRegisteredKeys(): string[];
   abort(serializedKey: string): void;
+  evict(options: EvictOptions): string[];
   reset(): void;
 };
 
 type InFlight = {
   controller: AbortController;
   generation: number;
+  waiter: Promise<void>;
+  settle: () => void;
 };
 
 function isAbortError(error: unknown): boolean {
@@ -49,6 +53,7 @@ export function createCoordinator(store: Store): Coordinator {
       return;
     }
     current.controller.abort();
+    current.settle();
     inflight.delete(serializedKey);
     if (markIdle) {
       const entry = store.get(serializedKey);
@@ -92,7 +97,23 @@ export function createCoordinator(store: Store): Coordinator {
 
       const controller = new AbortController();
       const currentGeneration = ++generation;
-      inflight.set(serializedKey, { controller, generation: currentGeneration });
+      let settled = false;
+      let settleWaiter!: () => void;
+      const waiter = new Promise<void>((resolve) => {
+        settleWaiter = resolve;
+      });
+      const settle = (): void => {
+        if (!settled) {
+          settled = true;
+          settleWaiter();
+        }
+      };
+      inflight.set(serializedKey, {
+        controller,
+        generation: currentGeneration,
+        waiter,
+        settle,
+      });
 
       const previous = store.get(serializedKey);
       store.set(serializedKey, {
@@ -131,11 +152,17 @@ export function createCoordinator(store: Store): Coordinator {
           isValidating: false,
         });
         throw error;
+      } finally {
+        settle();
       }
     },
 
     isInFlight(serializedKey) {
       return inflight.has(serializedKey);
+    },
+
+    getInFlightPromise(serializedKey) {
+      return inflight.get(serializedKey)?.waiter;
     },
 
     getRegisteredKeys() {
@@ -144,6 +171,54 @@ export function createCoordinator(store: Store): Coordinator {
 
     abort(serializedKey) {
       abortInternal(serializedKey, true);
+    },
+
+    evict(options) {
+      const now = Date.now();
+      const removable: { key: string; timestamp: number }[] = [];
+      for (const key of store.keys()) {
+        if (inflight.has(key) || store.subscriberCount(key) > 0) {
+          continue;
+        }
+        const entry = store.get(key);
+        if (!entry) {
+          continue;
+        }
+        removable.push({ key, timestamp: entry.timestamp });
+      }
+
+      const victims = new Set<string>();
+      if (options.maxAge != null) {
+        for (const item of removable) {
+          if (now - item.timestamp >= options.maxAge) {
+            victims.add(item.key);
+          }
+        }
+      }
+
+      if (options.maxKeys != null) {
+        const liveCount = store.keys().filter((key) => !victims.has(key)).length;
+        let over = liveCount - options.maxKeys;
+        if (over > 0) {
+          const extra = removable
+            .filter((item) => !victims.has(item.key))
+            .sort((a, b) => a.timestamp - b.timestamp);
+          for (const item of extra) {
+            if (over <= 0) {
+              break;
+            }
+            victims.add(item.key);
+            over -= 1;
+          }
+        }
+      }
+
+      for (const key of victims) {
+        abortInternal(key, false);
+        registered.delete(key);
+        store.delete(key);
+      }
+      return [...victims];
     },
 
     reset() {

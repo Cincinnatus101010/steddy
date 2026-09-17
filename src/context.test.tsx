@@ -1,10 +1,17 @@
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { clear, hydrate, SkegProvider } from "./context";
+import {
+  clear,
+  createRuntime,
+  dump,
+  hydrate,
+  hydrateAll,
+  LeeboardProvider,
+} from "./context";
 import { createCoordinator } from "./coordinator";
 import { defaultCoordinator, defaultStore } from "./defaults";
 import { createStore } from "./store";
-import { useSkeg } from "./useSkeg";
+import { useLeeboard } from "./useLeeboard";
 import type { ReactNode } from "react";
 
 afterEach(() => {
@@ -17,7 +24,7 @@ describe("hydrate", () => {
   it("seeds the store so the hook can render data immediately", async () => {
     hydrate("user", { name: "Ada" });
     const { result } = renderHook(() =>
-      useSkeg("user", async () => ({ name: "server" })),
+      useLeeboard("user", async () => ({ name: "server" })),
     );
     expect(result.current.data).toEqual({ name: "Ada" });
     expect(result.current.isLoading).toBe(false);
@@ -42,17 +49,17 @@ describe("clear", () => {
   });
 });
 
-describe("SkegProvider", () => {
+describe("LeeboardProvider", () => {
   it("isolates cache from the default store", async () => {
     const store = createStore();
     const coordinator = createCoordinator(store);
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <SkegProvider store={store} coordinator={coordinator}>
+      <LeeboardProvider store={store} coordinator={coordinator}>
         {children}
-      </SkegProvider>
+      </LeeboardProvider>
     );
     const { result } = renderHook(
-      () => useSkeg("user", async () => "scoped"),
+      () => useLeeboard("user", async () => "scoped"),
       { wrapper },
     );
     await waitFor(() => {
@@ -60,5 +67,57 @@ describe("SkegProvider", () => {
     });
     expect(defaultStore.get("user")).toBeUndefined();
     expect(store.get("user")?.data).toBe("scoped");
+  });
+
+  it("hydrates a dumped cache so SSR and the client see the same data", () => {
+    const server = createRuntime();
+    hydrate("user", { name: "Ada" }, server.store);
+    const payload = dump(server.store);
+    expect(JSON.parse(JSON.stringify(payload))).toEqual(payload);
+
+    const client = createRuntime();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <LeeboardProvider
+        store={client.store}
+        coordinator={client.coordinator}
+        cache={payload}
+      >
+        {children}
+      </LeeboardProvider>
+    );
+    const { result } = renderHook(
+      () => useLeeboard("user", async () => ({ name: "server" })),
+      { wrapper },
+    );
+    expect(result.current.data).toEqual({ name: "Ada" });
+    expect(client.store.get("user")?.timestamp).toBe(0);
+  });
+});
+
+describe("dump", () => {
+  it("omits empty keys, errors, and in-flight flags", () => {
+    const store = createStore();
+    store.set("user", {
+      data: { name: "Ada" },
+      error: new Error("stale"),
+      timestamp: 9,
+      isValidating: true,
+    });
+    store.set("empty", {
+      data: undefined,
+      error: undefined,
+      timestamp: 1,
+      isValidating: false,
+    });
+    expect(dump(store)).toEqual({
+      user: { data: { name: "Ada" }, timestamp: 9 },
+    });
+    hydrateAll(dump(store), store);
+    expect(store.get("user")).toMatchObject({
+      data: { name: "Ada" },
+      error: undefined,
+      timestamp: 0,
+      isValidating: false,
+    });
   });
 });

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const pluginsDir = dirname(fileURLToPath(import.meta.url));
 
 describe("plugin isolation", () => {
-  it.each(["focus.ts", "reconnect.ts", "polling.ts", "retry.ts"])(
+  it.each(["focus.ts", "reconnect.ts", "polling.ts", "retry.ts", "ttl.ts"])(
     "%s does not import the store",
     (file) => {
       const src = readFileSync(join(pluginsDir, file), "utf8");

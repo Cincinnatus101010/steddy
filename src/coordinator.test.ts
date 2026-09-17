@@ -143,4 +143,85 @@ describe("coordinator", () => {
     coordinator.register("k", "k", async () => 1);
     expect(coordinator.getRegisteredKeys()).toEqual(["k"]);
   });
+
+  it("exposes one waiter for the current in-flight generation", async () => {
+    const store = createStore();
+    const coordinator = createCoordinator(store);
+    const pending = deferred<string>();
+    const run = coordinator.revalidate("user", async () => pending.promise);
+    const waiter = coordinator.getInFlightPromise("user");
+    expect(waiter).toBeDefined();
+    pending.resolve("ok");
+    await run;
+    await waiter;
+    expect(coordinator.getInFlightPromise("user")).toBeUndefined();
+    expect(store.get("user")?.data).toBe("ok");
+  });
+
+  it("evicts unused stale keys and never in-flight or subscribed ones", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+    try {
+      const store = createStore();
+      const coordinator = createCoordinator(store);
+      store.set("old", {
+        data: 1,
+        error: undefined,
+        timestamp: Date.now() - 10_000,
+        isValidating: false,
+      });
+      store.set("fresh", {
+        data: 2,
+        error: undefined,
+        timestamp: Date.now(),
+        isValidating: false,
+      });
+      const pending = deferred<string>();
+      void coordinator.revalidate("busy", async () => pending.promise);
+      const unsubscribe = store.subscribe("watched", () => {});
+      store.set("watched", {
+        data: 3,
+        error: undefined,
+        timestamp: Date.now() - 10_000,
+        isValidating: false,
+      });
+
+      expect(coordinator.evict({ maxAge: 5_000 }).sort()).toEqual(["old"]);
+      expect(store.get("old")).toBeUndefined();
+      expect(store.get("fresh")?.data).toBe(2);
+      expect(store.get("watched")?.data).toBe(3);
+      expect(coordinator.isInFlight("busy")).toBe(true);
+
+      unsubscribe();
+      expect(coordinator.evict({ maxAge: 5_000 })).toEqual(["watched"]);
+      pending.resolve("ok");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("evicts oldest unused keys when over maxKeys", () => {
+    const store = createStore();
+    const coordinator = createCoordinator(store);
+    store.set("a", {
+      data: 1,
+      error: undefined,
+      timestamp: 1,
+      isValidating: false,
+    });
+    store.set("b", {
+      data: 2,
+      error: undefined,
+      timestamp: 2,
+      isValidating: false,
+    });
+    store.set("c", {
+      data: 3,
+      error: undefined,
+      timestamp: 3,
+      isValidating: false,
+    });
+    expect(coordinator.evict({ maxKeys: 1 })).toEqual(["a", "b"]);
+    expect(store.keys()).toEqual(["c"]);
+  });
 });

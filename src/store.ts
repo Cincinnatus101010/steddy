@@ -11,6 +11,7 @@ export type Store = {
   subscribe(key: string, callback: () => void): () => void;
   getSnapshot(key: string): CacheEntry;
   subscriberCount(key: string): number;
+  keys(): string[];
   clear(): void;
 };
 
@@ -77,6 +78,10 @@ export function createStore(): Store {
 
     subscriberCount(key) {
       return listeners.get(key)?.size ?? 0;
+    },
+
+    keys() {
+      return [...entries.keys()];
     },
 
     clear() {

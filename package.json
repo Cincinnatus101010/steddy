@@ -1,5 +1,5 @@
 {
-  "name": "skeg",
+  "name": "leeboard",
   "version": "0.1.0",
   "description": "Stale-while-revalidate data fetching for React, with strict layer separation.",
   "type": "module",
@@ -39,13 +39,13 @@
   },
   "license": "MIT",
   "author": "Ian Troisi",
-  "homepage": "https://cincinnatus101010.github.io/skegweb/",
+  "homepage": "https://cincinnatus101010.github.io/leeboardweb/",
   "bugs": {
-    "url": "https://github.com/Cincinnatus101010/skeg/issues"
+    "url": "https://github.com/Cincinnatus101010/leeboard/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Cincinnatus101010/skeg.git"
+    "url": "git+https://github.com/Cincinnatus101010/leeboard.git"
   },
   "keywords": [
     "react",
