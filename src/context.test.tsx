@@ -90,13 +90,15 @@ describe("SteddyProvider", () => {
       { wrapper },
     );
     expect(result.current.data).toEqual({ name: "Ada" });
-    expect(client.store.get("user")?.timestamp).toBe(0);
+    expect(client.store.get("user")?.timestamp).toBe(
+      payload.user.timestamp,
+    );
   });
 
   it("does not re-hydrate when cache is a new object with the same payload", () => {
     const store = createStore();
     const coordinator = createCoordinator(store);
-    const payload = { user: { data: { name: "Ada" }, timestamp: 0 } };
+    const payload = { user: { data: { name: "Ada" }, timestamp: 42 } };
     const fetcher = vi.fn(async () => ({ name: "client" }));
     const { rerender } = render(
       <SteddyProvider store={store} coordinator={coordinator} cache={payload}>
@@ -148,7 +150,7 @@ describe("dump", () => {
     expect(store.get("user")).toMatchObject({
       data: { name: "Ada" },
       error: undefined,
-      timestamp: 0,
+      timestamp: 9,
       isValidating: false,
     });
   });

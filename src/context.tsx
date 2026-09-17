@@ -100,7 +100,7 @@ export function dump(store: Store = defaultStore): CacheSnapshot {
   return snapshot;
 }
 
-/** Restore a dumped snapshot. Timestamps are 0 so the client still revalidates. */
+/** Restore a dumped snapshot. Timestamps from dump are preserved so dedup can skip immediate refetch. */
 export function hydrateAll(
   snapshot: CacheSnapshot,
   store: Store = defaultStore,
@@ -109,7 +109,7 @@ export function hydrateAll(
     store.set(key, {
       data: payload.data,
       error: undefined,
-      timestamp: 0,
+      timestamp: payload.timestamp,
       isValidating: false,
     });
   }
