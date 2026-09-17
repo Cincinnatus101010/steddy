@@ -1,12 +1,12 @@
-export { useLeeboard } from "./useLeeboard";
-export { useLeeboardInfinite } from "./useLeeboardInfinite";
+export { useSteddy } from "./useSteddy";
+export { useSteddyInfinite } from "./useSteddyInfinite";
 export { mutate, createMutate } from "./mutate";
 export { serializeKey } from "./key";
 export { createStore } from "./store";
 export { createCoordinator, DEDUP_WINDOW_MS } from "./coordinator";
 export { defaultStore, defaultCoordinator } from "./defaults";
 export {
-  LeeboardProvider,
+  SteddyProvider,
   createRuntime,
   hydrate,
   hydrateAll,
@@ -28,11 +28,11 @@ export type {
   MutateUpdater,
   MutateOptions,
   MutateFn,
-  UseLeeboardOptions,
-  UseLeeboardResult,
+  UseSteddyOptions,
+  UseSteddyResult,
   EvictOptions,
 } from "./types";
 export type { Store } from "./store";
 export type { Coordinator, RevalidateOptions } from "./coordinator";
-export type { LeeboardRuntime } from "./context";
-export type { UseLeeboardInfiniteResult } from "./useLeeboardInfinite";
+export type { SteddyRuntime } from "./context";
+export type { UseSteddyInfiniteResult } from "./useSteddyInfinite";

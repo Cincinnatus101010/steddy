@@ -1,13 +1,13 @@
 import { useCallback, useRef, useSyncExternalStore } from "react";
-import { useLeeboardRuntime } from "./context";
+import { useSteddyRuntime } from "./context";
 import { keysShallowEqual, serializeKey } from "./key";
 import { EMPTY_SNAPSHOT } from "./store";
 import type {
   Fetcher,
   Key,
   MutateFn,
-  UseLeeboardOptions,
-  UseLeeboardResult,
+  UseSteddyOptions,
+  UseSteddyResult,
 } from "./types";
 
 function useSerializedKey(key: Key | null): string | null {
@@ -29,12 +29,12 @@ function useSerializedKey(key: Key | null): string | null {
   return prevSerialized.current;
 }
 
-export function useLeeboard<T>(
+export function useSteddy<T>(
   key: Key | null,
   fetcher: Fetcher<T>,
-  options?: UseLeeboardOptions,
-): UseLeeboardResult<T> {
-  const { store, coordinator, mutate: runtimeMutate } = useLeeboardRuntime();
+  options?: UseSteddyOptions,
+): UseSteddyResult<T> {
+  const { store, coordinator, mutate: runtimeMutate } = useSteddyRuntime();
   const serialized = useSerializedKey(key);
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;

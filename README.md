@@ -1,20 +1,20 @@
-# leeboard
+# steddy
 
 Stale-while-revalidate data fetching for React. Same job as `useSWR`, rebuilt with one-way layers so reliability bugs cannot leak across concerns.
 
-A leeboard is the pivoting fin that keeps a hull from sliding sideways. This library does that for in-flight fetches.
+The name is “steady” with intent: keep in-flight fetches on course so a stale response cannot roll the cache.
 
-Explainer: [https://cincinnatus101010.github.io/leeboardweb/](https://cincinnatus101010.github.io/leeboardweb/)
+Explainer: [https://cincinnatus101010.github.io/steddyweb/](https://cincinnatus101010.github.io/steddyweb/)
 
 ```bash
-npm install leeboard
+npm install steddy
 ```
 
 ```ts
-import { useLeeboard } from "leeboard";
+import { useSteddy } from "steddy";
 
 function Profile({ id }: { id: string }) {
-  const { data, error, isLoading, isValidating, mutate } = useLeeboard(
+  const { data, error, isLoading, isValidating, mutate } = useSteddy(
     ["user", id],
     async ([, userId], { signal }) => {
       const response = await fetch(`/api/users/${userId}`, { signal });
@@ -38,14 +38,14 @@ function Profile({ id }: { id: string }) {
 `key === null` skips fetching. Plugins (`focusRevalidate`, `reconnectRevalidate`, `pollingRevalidate`, `retryOnError`) are opt-in named exports.
 
 ```ts
-import { defaultCoordinator, focusRevalidate, hydrate, clear } from "leeboard";
+import { defaultCoordinator, focusRevalidate, hydrate, clear } from "steddy";
 
 hydrate("user", { name: "Ada" });
 focusRevalidate(defaultCoordinator);
 clear("user");
 ```
 
-Need an isolated cache (tests, multiple trees, SSR): wrap with `LeeboardProvider` and pass `createStore()` + `createCoordinator(store)`, or `createRuntime()`. Pass `cache={dump(store)}` across an RSC boundary. `{ suspense: true }` throws the in-flight waiter. `useLeeboardInfinite` keeps one cache entry per page. `ttlEvict` drops unused keys.
+Need an isolated cache (tests, multiple trees, SSR): wrap with `SteddyProvider` and pass `createStore()` + `createCoordinator(store)`, or `createRuntime()`. Pass `cache={dump(store)}` across an RSC boundary. `{ suspense: true }` throws the in-flight waiter. `useSteddyInfinite` keeps one cache entry per page. `ttlEvict` drops unused keys.
 
 ## Architecture
 

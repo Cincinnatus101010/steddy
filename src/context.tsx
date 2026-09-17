@@ -6,13 +6,13 @@ import type { CacheSnapshot, Key } from "./types";
 import { serializeKey } from "./key";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
-export type LeeboardRuntime = {
+export type SteddyRuntime = {
   store: Store;
   coordinator: Coordinator;
   mutate: ReturnType<typeof createMutate>;
 };
 
-export function createRuntime(): LeeboardRuntime {
+export function createRuntime(): SteddyRuntime {
   const store = createStore();
   const coordinator = createCoordinator(store);
   return {
@@ -22,15 +22,15 @@ export function createRuntime(): LeeboardRuntime {
   };
 }
 
-const defaultRuntime: LeeboardRuntime = {
+const defaultRuntime: SteddyRuntime = {
   store: defaultStore,
   coordinator: defaultCoordinator,
   mutate: createMutate(defaultStore, defaultCoordinator),
 };
 
-const LeeboardContext = createContext<LeeboardRuntime>(defaultRuntime);
+const SteddyContext = createContext<SteddyRuntime>(defaultRuntime);
 
-export function LeeboardProvider({
+export function SteddyProvider({
   store,
   coordinator,
   cache,
@@ -41,7 +41,7 @@ export function LeeboardProvider({
   cache?: CacheSnapshot;
   children: ReactNode;
 }) {
-  const value = useMemo<LeeboardRuntime>(() => {
+  const value = useMemo<SteddyRuntime>(() => {
     if (cache) {
       hydrateAll(cache, store);
     }
@@ -51,11 +51,11 @@ export function LeeboardProvider({
       mutate: createMutate(store, coordinator),
     };
   }, [store, coordinator, cache]);
-  return <LeeboardContext.Provider value={value}>{children}</LeeboardContext.Provider>;
+  return <SteddyContext.Provider value={value}>{children}</SteddyContext.Provider>;
 }
 
-export function useLeeboardRuntime(): LeeboardRuntime {
-  return useContext(LeeboardContext);
+export function useSteddyRuntime(): SteddyRuntime {
+  return useContext(SteddyContext);
 }
 
 /** Seed the cache so the next render can show data immediately. Timestamp is 0 so mount still revalidates. */
@@ -99,7 +99,7 @@ export function hydrateAll(
 /** Drop one key, or the whole cache. Aborts in-flight work for deleted keys. */
 export function clear(
   key?: Key,
-  runtime: Pick<LeeboardRuntime, "store" | "coordinator"> = defaultRuntime,
+  runtime: Pick<SteddyRuntime, "store" | "coordinator"> = defaultRuntime,
 ): void {
   if (key === undefined) {
     for (const active of runtime.coordinator.getRegisteredKeys()) {

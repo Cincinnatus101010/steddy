@@ -6,12 +6,12 @@ import {
   dump,
   hydrate,
   hydrateAll,
-  LeeboardProvider,
+  SteddyProvider,
 } from "./context";
 import { createCoordinator } from "./coordinator";
 import { defaultCoordinator, defaultStore } from "./defaults";
 import { createStore } from "./store";
-import { useLeeboard } from "./useLeeboard";
+import { useSteddy } from "./useSteddy";
 import type { ReactNode } from "react";
 
 afterEach(() => {
@@ -24,7 +24,7 @@ describe("hydrate", () => {
   it("seeds the store so the hook can render data immediately", async () => {
     hydrate("user", { name: "Ada" });
     const { result } = renderHook(() =>
-      useLeeboard("user", async () => ({ name: "server" })),
+      useSteddy("user", async () => ({ name: "server" })),
     );
     expect(result.current.data).toEqual({ name: "Ada" });
     expect(result.current.isLoading).toBe(false);
@@ -49,17 +49,17 @@ describe("clear", () => {
   });
 });
 
-describe("LeeboardProvider", () => {
+describe("SteddyProvider", () => {
   it("isolates cache from the default store", async () => {
     const store = createStore();
     const coordinator = createCoordinator(store);
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <LeeboardProvider store={store} coordinator={coordinator}>
+      <SteddyProvider store={store} coordinator={coordinator}>
         {children}
-      </LeeboardProvider>
+      </SteddyProvider>
     );
     const { result } = renderHook(
-      () => useLeeboard("user", async () => "scoped"),
+      () => useSteddy("user", async () => "scoped"),
       { wrapper },
     );
     await waitFor(() => {
@@ -77,16 +77,16 @@ describe("LeeboardProvider", () => {
 
     const client = createRuntime();
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <LeeboardProvider
+      <SteddyProvider
         store={client.store}
         coordinator={client.coordinator}
         cache={payload}
       >
         {children}
-      </LeeboardProvider>
+      </SteddyProvider>
     );
     const { result } = renderHook(
-      () => useLeeboard("user", async () => ({ name: "server" })),
+      () => useSteddy("user", async () => ({ name: "server" })),
       { wrapper },
     );
     expect(result.current.data).toEqual({ name: "Ada" });

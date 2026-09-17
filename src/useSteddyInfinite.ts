@@ -1,9 +1,9 @@
 import { useCallback, useRef, useState, useSyncExternalStore } from "react";
-import { useLeeboardRuntime } from "./context";
+import { useSteddyRuntime } from "./context";
 import { serializeKey } from "./key";
 import type { Fetcher, Key, MutateFn } from "./types";
 
-export type UseLeeboardInfiniteResult<T> = {
+export type UseSteddyInfiniteResult<T> = {
   data: T[] | undefined;
   error: unknown;
   isLoading: boolean;
@@ -32,15 +32,15 @@ function collectPages<T>(
   return pages;
 }
 
-export function useLeeboardInfinite<T>(
+export function useSteddyInfinite<T>(
   getKey: (
     index: number,
     previousPageData: T | undefined,
   ) => Key | null,
   fetcher: Fetcher<T>,
   options?: { initialSize?: number },
-): UseLeeboardInfiniteResult<T> {
-  const { store, coordinator, mutate: runtimeMutate } = useLeeboardRuntime();
+): UseSteddyInfiniteResult<T> {
+  const { store, coordinator, mutate: runtimeMutate } = useSteddyRuntime();
   const [size, setSizeState] = useState(options?.initialSize ?? 1);
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;

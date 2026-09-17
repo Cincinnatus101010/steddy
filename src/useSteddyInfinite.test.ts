@@ -1,7 +1,7 @@
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { defaultCoordinator, defaultStore } from "./defaults";
-import { useLeeboardInfinite } from "./useLeeboardInfinite";
+import { useSteddyInfinite } from "./useSteddyInfinite";
 import type { Key } from "./types";
 
 afterEach(() => {
@@ -10,7 +10,7 @@ afterEach(() => {
   defaultStore.clear();
 });
 
-describe("useLeeboardInfinite", () => {
+describe("useSteddyInfinite", () => {
   it("loads pages independently and concatenates them", async () => {
     const getKey = (
       index: number,
@@ -22,7 +22,7 @@ describe("useLeeboardInfinite", () => {
       return ["list", index];
     };
     const { result } = renderHook(() =>
-      useLeeboardInfinite(getKey, async (key) => {
+      useSteddyInfinite(getKey, async (key) => {
         const index = Array.isArray(key) ? key[1] : 0;
         return [`item-${index}`];
       }),

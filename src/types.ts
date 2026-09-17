@@ -35,7 +35,7 @@ export type MutateFn<T> = (
   options?: MutateOptions,
 ) => Promise<T | undefined>;
 
-export type UseLeeboardOptions = {
+export type UseSteddyOptions = {
   suspense?: boolean;
 };
 
@@ -51,7 +51,7 @@ export type EvictOptions = {
   maxKeys?: number;
 };
 
-export type UseLeeboardResult<T> = {
+export type UseSteddyResult<T> = {
   data: T | undefined;
   error: unknown;
   isLoading: boolean;

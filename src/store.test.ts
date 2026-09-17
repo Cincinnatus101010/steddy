@@ -135,6 +135,6 @@ describe("store layer isolation", () => {
     expect(src).not.toMatch(/\bwindow\b/);
     expect(src).not.toMatch(/\bdocument\b/);
     expect(src).not.toMatch(/\bnavigator\b/);
-    expect(src).not.toMatch(/from ["'].*(coordinator|plugins|react|mutate|useLeeboard)/);
+    expect(src).not.toMatch(/from ["'].*(coordinator|plugins|react|mutate|useSteddy)/);
   });
 });

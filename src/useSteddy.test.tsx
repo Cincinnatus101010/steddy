@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { defaultCoordinator } from "./defaults";
 import { defaultStore } from "./defaults";
 import { serializeKey } from "./key";
-import { useLeeboard } from "./useLeeboard";
+import { useSteddy } from "./useSteddy";
 
 afterEach(() => {
   cleanup();
@@ -11,10 +11,10 @@ afterEach(() => {
   defaultStore.clear();
 });
 
-describe("useLeeboard", () => {
+describe("useSteddy", () => {
   it("fetches and exposes data through the store snapshot", async () => {
     const { result } = renderHook(() =>
-      useLeeboard("user", async () => ({ name: "Ada" })),
+      useSteddy("user", async () => ({ name: "Ada" })),
     );
 
     await waitFor(() => {
@@ -27,7 +27,7 @@ describe("useLeeboard", () => {
 
   it("does not fetch when the key is null", async () => {
     const fetcher = vi.fn(async () => "nope");
-    const { result } = renderHook(() => useLeeboard(null, fetcher));
+    const { result } = renderHook(() => useSteddy(null, fetcher));
     expect(result.current.data).toBeUndefined();
     expect(result.current.isLoading).toBe(false);
     expect(fetcher).not.toHaveBeenCalled();
@@ -37,7 +37,7 @@ describe("useLeeboard", () => {
   it("starts fetching when a null key becomes a real key", async () => {
     const fetcher = vi.fn(async () => "ok");
     const { result, rerender } = renderHook(
-      ({ key }: { key: string | null }) => useLeeboard(key, fetcher),
+      ({ key }: { key: string | null }) => useSteddy(key, fetcher),
       { initialProps: { key: null as string | null } },
     );
     expect(fetcher).not.toHaveBeenCalled();
@@ -49,8 +49,8 @@ describe("useLeeboard", () => {
 
   it("shares one in-flight request across subscribers of the same key", async () => {
     const fetcher = vi.fn(async () => "shared");
-    const a = renderHook(() => useLeeboard("user", fetcher));
-    const b = renderHook(() => useLeeboard("user", fetcher));
+    const a = renderHook(() => useSteddy("user", fetcher));
+    const b = renderHook(() => useSteddy("user", fetcher));
     await waitFor(() => {
       expect(a.result.current.data).toBe("shared");
       expect(b.result.current.data).toBe("shared");
@@ -69,7 +69,7 @@ describe("useLeeboard", () => {
         }),
     );
 
-    const { unmount } = renderHook(() => useLeeboard("user", fetcher));
+    const { unmount } = renderHook(() => useSteddy("user", fetcher));
     expect(defaultCoordinator.isInFlight("user")).toBe(true);
     expect(() => unmount()).not.toThrow();
     expect(defaultCoordinator.isInFlight("user")).toBe(false);
@@ -82,8 +82,8 @@ describe("useLeeboard", () => {
 
   it("does not abort while another subscriber is still mounted", async () => {
     const fetcher = vi.fn(() => new Promise<string>(() => {}));
-    const first = renderHook(() => useLeeboard("user", fetcher));
-    const second = renderHook(() => useLeeboard("user", fetcher));
+    const first = renderHook(() => useSteddy("user", fetcher));
+    const second = renderHook(() => useSteddy("user", fetcher));
     expect(defaultCoordinator.isInFlight("user")).toBe(true);
     first.unmount();
     expect(defaultCoordinator.isInFlight("user")).toBe(true);
@@ -94,7 +94,7 @@ describe("useLeeboard", () => {
   it("memoizes tuple keys by shallow equality so a new array does not resubscribe", async () => {
     const fetcher = vi.fn(async (key) => key);
     const { result, rerender } = renderHook(
-      ({ id }: { id: number }) => useLeeboard(["user", id], fetcher),
+      ({ id }: { id: number }) => useSteddy(["user", id], fetcher),
       { initialProps: { id: 1 } },
     );
     await waitFor(() => {
@@ -114,7 +114,7 @@ describe("useLeeboard", () => {
 
   it("isLoading is true until the first value or error arrives", async () => {
     const { result } = renderHook(() =>
-      useLeeboard("user", () => new Promise<string>(() => {})),
+      useSteddy("user", () => new Promise<string>(() => {})),
     );
     expect(result.current.isLoading).toBe(true);
     expect(result.current.data).toBeUndefined();
@@ -122,7 +122,7 @@ describe("useLeeboard", () => {
 
   it("isLoading is false after a fetcher error", async () => {
     const { result } = renderHook(() =>
-      useLeeboard("user", async () => {
+      useSteddy("user", async () => {
         throw new Error("nope");
       }),
     );
@@ -138,7 +138,7 @@ describe("useLeeboard", () => {
     const { dirname, join } = await import("node:path");
     const { fileURLToPath } = await import("node:url");
     const src = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "useLeeboard.ts"),
+      join(dirname(fileURLToPath(import.meta.url)), "useSteddy.ts"),
       "utf8",
     );
     expect(src).not.toMatch(/plugins/);
@@ -149,7 +149,7 @@ describe("useLeeboard", () => {
     const { Suspense } = await import("react");
     const { render, screen } = await import("@testing-library/react");
     function View() {
-      const { data } = useLeeboard("user", async () => "ada", { suspense: true });
+      const { data } = useSteddy("user", async () => "ada", { suspense: true });
       return <span>{String(data)}</span>;
     }
     render(
