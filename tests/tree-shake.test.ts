@@ -30,6 +30,7 @@ describe("tree-shaking", () => {
     expect(out).not.toContain("pollingRevalidate");
     expect(out).not.toContain("retryOnError");
     expect(out).not.toContain("ttlEvict");
+    expect(out).not.toContain("measurePerf");
     expect(out).not.toContain("useSteddyInfinite");
     expect(out).not.toContain('addEventListener("focus"');
     expect(out).not.toContain('addEventListener("online"');

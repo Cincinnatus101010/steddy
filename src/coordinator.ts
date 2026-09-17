@@ -8,6 +8,13 @@ export type RevalidateOptions = {
   force?: boolean;
 };
 
+export type CoordinatorEvent =
+  | { type: "start"; key: string }
+  | { type: "abort"; key: string; ms: number }
+  | { type: "dedup"; key: string }
+  | { type: "write"; key: string; ms: number }
+  | { type: "error"; key: string; ms: number };
+
 export type Coordinator = {
   register(serializedKey: string, key: Key, fetcher: Fetcher<unknown>): void;
   unregister(serializedKey: string): void;
@@ -23,6 +30,7 @@ export type Coordinator = {
   abort(serializedKey: string): void;
   evict(options: EvictOptions): string[];
   reset(): void;
+  subscribe(listener: (event: CoordinatorEvent) => void): () => void;
 };
 
 type InFlight = {
@@ -30,7 +38,12 @@ type InFlight = {
   generation: number;
   waiter: Promise<void>;
   settle: () => void;
+  startedAt: number;
 };
+
+function now(): number {
+  return typeof performance !== "undefined" ? performance.now() : Date.now();
+}
 
 function isAbortError(error: unknown): boolean {
   return (
@@ -48,7 +61,17 @@ export function createCoordinator(store: Store): Coordinator {
   >();
   const inflight = new Map<string, InFlight>();
   const releaseTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const listeners = new Set<(event: CoordinatorEvent) => void>();
   let generation = 0;
+
+  function emit(event: CoordinatorEvent): void {
+    if (listeners.size === 0) {
+      return;
+    }
+    for (const listener of listeners) {
+      listener(event);
+    }
+  }
 
   function cancelRelease(serializedKey: string): void {
     const timer = releaseTimers.get(serializedKey);
@@ -64,6 +87,11 @@ export function createCoordinator(store: Store): Coordinator {
     if (!current) {
       return;
     }
+    emit({
+      type: "abort",
+      key: serializedKey,
+      ms: now() - current.startedAt,
+    });
     current.controller.abort();
     current.settle();
     inflight.delete(serializedKey);
@@ -109,6 +137,7 @@ export function createCoordinator(store: Store): Coordinator {
           entry.data !== undefined &&
           Date.now() - entry.timestamp < DEDUP_WINDOW_MS
         ) {
+          emit({ type: "dedup", key: serializedKey });
           return;
         }
       }
@@ -135,12 +164,15 @@ export function createCoordinator(store: Store): Coordinator {
           settleWaiter();
         }
       };
+      const startedAt = now();
       inflight.set(serializedKey, {
         controller,
         generation: currentGeneration,
         waiter,
         settle,
+        startedAt,
       });
+      emit({ type: "start", key: serializedKey });
 
       const previous = store.get(serializedKey);
       store.set(serializedKey, {
@@ -164,6 +196,11 @@ export function createCoordinator(store: Store): Coordinator {
           timestamp: Date.now(),
           isValidating: false,
         });
+        emit({
+          type: "write",
+          key: serializedKey,
+          ms: now() - startedAt,
+        });
       } catch (error) {
         const stillCurrent =
           inflight.get(serializedKey)?.generation === currentGeneration;
@@ -177,6 +214,11 @@ export function createCoordinator(store: Store): Coordinator {
           error,
           timestamp: current?.timestamp ?? 0,
           isValidating: false,
+        });
+        emit({
+          type: "error",
+          key: serializedKey,
+          ms: now() - startedAt,
         });
         throw error;
       } finally {
@@ -258,6 +300,13 @@ export function createCoordinator(store: Store): Coordinator {
         abortInternal(key, false);
       }
       registered.clear();
+    },
+
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
     },
   };
 

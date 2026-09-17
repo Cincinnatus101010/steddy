@@ -18,6 +18,7 @@ export { reconnectRevalidate } from "./plugins/reconnect";
 export { pollingRevalidate } from "./plugins/polling";
 export { retryOnError } from "./plugins/retry";
 export { ttlEvict } from "./plugins/ttl";
+export { measurePerf } from "./plugins/measure";
 
 export type {
   Key,
@@ -33,6 +34,7 @@ export type {
   EvictOptions,
 } from "./types";
 export type { Store } from "./store";
-export type { Coordinator, RevalidateOptions } from "./coordinator";
+export type { Coordinator, CoordinatorEvent, RevalidateOptions } from "./coordinator";
 export type { SteddyRuntime } from "./context";
 export type { UseSteddyInfiniteResult } from "./useSteddyInfinite";
+export type { PerfSnapshot, MeasureCoordinator } from "./plugins/measure";
