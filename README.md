@@ -55,7 +55,7 @@ plugins → coordinator → store
               hooks
 ```
 
-A new request for the same key **aborts** the in-flight one. Aborted requests do not write to the store. Optimistic `mutate` rolls back on error by default.
+A new request for the same key **aborts** the in-flight one. Aborted requests do not write to the store. The last subscriber’s unmount delays that abort by a tick so a remount can reuse the waiter. Optimistic `mutate` rolls back on error by default.
 
 ## License
 

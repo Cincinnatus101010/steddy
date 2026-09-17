@@ -63,8 +63,7 @@ export function useSteddy<T>(
       return () => {
         unsubscribe();
         if (store.subscriberCount(serialized) === 0) {
-          coordinator.abort(serialized);
-          coordinator.unregister(serialized);
+          coordinator.scheduleRelease(serialized);
         }
       };
     },

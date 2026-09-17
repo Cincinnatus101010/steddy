@@ -3,7 +3,7 @@ export { useSteddyInfinite } from "./useSteddyInfinite";
 export { mutate, createMutate } from "./mutate";
 export { serializeKey } from "./key";
 export { createStore } from "./store";
-export { createCoordinator, DEDUP_WINDOW_MS } from "./coordinator";
+export { createCoordinator, DEDUP_WINDOW_MS, UNSUBSCRIBE_GRACE_MS } from "./coordinator";
 export { defaultStore, defaultCoordinator } from "./defaults";
 export {
   SteddyProvider,

@@ -80,8 +80,7 @@ export function useSteddyInfinite<T>(
         for (const [index, page] of currentPages.entries()) {
           unsubscribes[index]?.();
           if (store.subscriberCount(page.serialized) === 0) {
-            coordinator.abort(page.serialized);
-            coordinator.unregister(page.serialized);
+            coordinator.scheduleRelease(page.serialized);
           }
         }
       };

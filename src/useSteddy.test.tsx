@@ -72,6 +72,11 @@ describe("useSteddy", () => {
     const { unmount } = renderHook(() => useSteddy("user", fetcher));
     expect(defaultCoordinator.isInFlight("user")).toBe(true);
     expect(() => unmount()).not.toThrow();
+    expect(defaultCoordinator.isInFlight("user")).toBe(true);
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
     expect(defaultCoordinator.isInFlight("user")).toBe(false);
 
     await act(async () => {
@@ -88,7 +93,22 @@ describe("useSteddy", () => {
     first.unmount();
     expect(defaultCoordinator.isInFlight("user")).toBe(true);
     second.unmount();
+    expect(defaultCoordinator.isInFlight("user")).toBe(true);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
     expect(defaultCoordinator.isInFlight("user")).toBe(false);
+  });
+
+  it("reuses the in-flight request when the last subscriber remounts immediately", () => {
+    const fetcher = vi.fn(() => new Promise<string>(() => {}));
+    const first = renderHook(() => useSteddy("user", fetcher));
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    first.unmount();
+    const second = renderHook(() => useSteddy("user", fetcher));
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(defaultCoordinator.isInFlight("user")).toBe(true);
+    second.unmount();
   });
 
   it("memoizes tuple keys by shallow equality so a new array does not resubscribe", async () => {

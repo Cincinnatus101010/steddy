@@ -81,7 +81,7 @@ const { data, error, isLoading, isValidating, mutate } = useSteddy(
 ## Success Criteria
 
 1. Two rapid `revalidate` calls for the same key: only the second response is stored; the first is aborted.
-2. Last subscriber unmount aborts in-flight work; no throw; store is not updated by the aborted request.
+2. Last subscriber unmount aborts in-flight work after a grace tick (`UNSUBSCRIBE_GRACE_MS`); no throw; store is not updated by the aborted request. Remounting during the tick reuses the waiter.
 3. Failed optimistic mutation restores the exact prior `CacheEntry`, including `error`.
 4. Store tests pass with coordinator/plugins absent from the import graph.
 5. Bundling only `useSteddy` excludes focus/reconnect/polling/retry code.

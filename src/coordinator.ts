@@ -2,6 +2,7 @@ import type { EvictOptions, Fetcher, Key } from "./types";
 import type { Store } from "./store";
 
 export const DEDUP_WINDOW_MS = 2000;
+export const UNSUBSCRIBE_GRACE_MS = 0;
 
 export type RevalidateOptions = {
   force?: boolean;
@@ -10,6 +11,7 @@ export type RevalidateOptions = {
 export type Coordinator = {
   register(serializedKey: string, key: Key, fetcher: Fetcher<unknown>): void;
   unregister(serializedKey: string): void;
+  scheduleRelease(serializedKey: string): void;
   revalidate(
     serializedKey: string,
     fetcher?: Fetcher<unknown>,
@@ -45,7 +47,17 @@ export function createCoordinator(store: Store): Coordinator {
     { key: Key; fetcher: Fetcher<unknown> }
   >();
   const inflight = new Map<string, InFlight>();
+  const releaseTimers = new Map<string, ReturnType<typeof setTimeout>>();
   let generation = 0;
+
+  function cancelRelease(serializedKey: string): void {
+    const timer = releaseTimers.get(serializedKey);
+    if (timer == null) {
+      return;
+    }
+    clearTimeout(timer);
+    releaseTimers.delete(serializedKey);
+  }
 
   function abortInternal(serializedKey: string, markIdle: boolean): void {
     const current = inflight.get(serializedKey);
@@ -65,11 +77,26 @@ export function createCoordinator(store: Store): Coordinator {
 
   const coordinator: Coordinator = {
     register(serializedKey, key, fetcher) {
+      cancelRelease(serializedKey);
       registered.set(serializedKey, { key, fetcher });
     },
 
     unregister(serializedKey) {
+      cancelRelease(serializedKey);
       registered.delete(serializedKey);
+    },
+
+    scheduleRelease(serializedKey) {
+      cancelRelease(serializedKey);
+      const timer = setTimeout(() => {
+        releaseTimers.delete(serializedKey);
+        if (store.subscriberCount(serializedKey) > 0) {
+          return;
+        }
+        abortInternal(serializedKey, true);
+        registered.delete(serializedKey);
+      }, UNSUBSCRIBE_GRACE_MS);
+      releaseTimers.set(serializedKey, timer);
     },
 
     async revalidate(serializedKey, fetcher, options) {
@@ -170,6 +197,7 @@ export function createCoordinator(store: Store): Coordinator {
     },
 
     abort(serializedKey) {
+      cancelRelease(serializedKey);
       abortInternal(serializedKey, true);
     },
 
@@ -214,6 +242,7 @@ export function createCoordinator(store: Store): Coordinator {
       }
 
       for (const key of victims) {
+        cancelRelease(key);
         abortInternal(key, false);
         registered.delete(key);
         store.delete(key);
@@ -222,6 +251,9 @@ export function createCoordinator(store: Store): Coordinator {
     },
 
     reset() {
+      for (const key of [...releaseTimers.keys()]) {
+        cancelRelease(key);
+      }
       for (const key of [...inflight.keys()]) {
         abortInternal(key, false);
       }
