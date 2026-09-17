@@ -13,12 +13,21 @@ export type UseSteddyInfiniteResult<T> = {
   mutate: MutateFn<T[]>;
 };
 
-function collectPages<T>(
+function isThenable<T>(value: T | Promise<T>): value is Promise<T> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as Promise<T>).then === "function"
+  );
+}
+
+export function collectPages<T>(
   getKey: (index: number, previousPageData: T | undefined) => Key | null,
   getData: (serialized: string) => T | undefined,
   size: number,
 ): { key: Key; serialized: string }[] {
   const pages: { key: Key; serialized: string }[] = [];
+  const seen = new Set<string>();
   let previous: T | undefined;
   for (let index = 0; index < size; index++) {
     const key = getKey(index, previous);
@@ -26,6 +35,10 @@ function collectPages<T>(
       break;
     }
     const serialized = serializeKey(key);
+    if (seen.has(serialized)) {
+      break;
+    }
+    seen.add(serialized);
     pages.push({ key, serialized });
     previous = getData(serialized);
   }
@@ -40,7 +53,7 @@ export function useSteddyInfinite<T>(
   fetcher: Fetcher<T>,
   options?: { initialSize?: number },
 ): UseSteddyInfiniteResult<T> {
-  const { store, coordinator, mutate: runtimeMutate } = useSteddyRuntime();
+  const { store, coordinator } = useSteddyRuntime();
   const [size, setSizeState] = useState(options?.initialSize ?? 1);
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
@@ -155,35 +168,85 @@ export function useSteddyInfinite<T>(
 
   const boundMutate = useCallback<MutateFn<T[]>>(
     async (updater, mutateOptions) => {
+      const revalidate = mutateOptions?.revalidate ?? true;
+      const rollbackOnError = mutateOptions?.rollbackOnError ?? true;
       const currentPages = collectPages(
         getKeyRef.current,
         (serialized) => store.get(serialized)?.data as T | undefined,
         size,
       );
-      const first = currentPages[0];
-      if (!first) {
+      if (currentPages.length === 0) {
         return undefined;
       }
-      if (updater !== undefined && typeof updater !== "function") {
-        const pagesValue = updater as T[];
-        const firstPage = pagesValue[0];
-        if (firstPage !== undefined) {
-          await runtimeMutate(first.key, firstPage, mutateOptions);
+
+      const previous = currentPages.map((page) => ({
+        serialized: page.serialized,
+        entry: store.get(page.serialized),
+      }));
+      const restore = (): void => {
+        for (const item of previous) {
+          if (item.entry === undefined) {
+            store.delete(item.serialized);
+          } else {
+            store.set(item.serialized, item.entry);
+          }
         }
-        return pagesValue;
+      };
+
+      try {
+        const loaded: T[] = [];
+        for (const page of currentPages) {
+          const pageData = store.get(page.serialized)?.data as T | undefined;
+          if (pageData === undefined) {
+            break;
+          }
+          loaded.push(pageData);
+        }
+        const current = loaded.length === 0 ? undefined : loaded;
+        const next =
+          typeof updater === "function"
+            ? (
+                updater as (
+                  current: T[] | undefined,
+                ) => T[] | Promise<T[]>
+              )(current)
+            : updater;
+        const resolved = isThenable(next) ? await next : next;
+        const pagesValue = resolved as T[];
+
+        for (const [index, page] of currentPages.entries()) {
+          if (index >= pagesValue.length) {
+            break;
+          }
+          store.set(page.serialized, {
+            data: pagesValue[index],
+            error: undefined,
+            timestamp: Date.now(),
+            isValidating: revalidate,
+          });
+        }
+
+        if (revalidate) {
+          await Promise.all(
+            currentPages.map((page) =>
+              coordinator.revalidate(page.serialized, undefined, {
+                force: true,
+              }),
+            ),
+          );
+        }
+
+        return currentPages
+          .map((page) => store.get(page.serialized)?.data as T | undefined)
+          .filter((page): page is T => page !== undefined);
+      } catch (error) {
+        if (rollbackOnError) {
+          restore();
+        }
+        throw error;
       }
-      await Promise.all(
-        currentPages.map((page) =>
-          coordinator
-            .revalidate(page.serialized, undefined, { force: true })
-            .catch(() => {}),
-        ),
-      );
-      return currentPages
-        .map((page) => store.get(page.serialized)?.data as T | undefined)
-        .filter((page): page is T => page !== undefined);
     },
-    [coordinator, runtimeMutate, size, store],
+    [coordinator, size, store],
   );
 
   const first = pages[0];

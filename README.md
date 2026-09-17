@@ -45,7 +45,7 @@ focusRevalidate(defaultCoordinator);
 clear("user");
 ```
 
-Need an isolated cache (tests, multiple trees, SSR): wrap with `SteddyProvider` and pass `createStore()` + `createCoordinator(store)`, or `createRuntime()`. Pass `cache={dump(store)}` across an RSC boundary. `{ suspense: true }` throws the in-flight waiter. `{ keepPreviousData: true }` keeps the last value on screen while a new key loads. `useSteddyInfinite` keeps one cache entry per page. `ttlEvict` drops unused keys.
+Need an isolated cache (tests, multiple trees, SSR): wrap with `SteddyProvider` and pass `createStore()` + `createCoordinator(store)`, or `createRuntime()`. Pass `cache={dump(store)}` across an RSC boundary. `{ suspense: true }` throws the in-flight waiter. `{ keepPreviousData: true }` keeps the last value on screen while a new key loads. `useSteddyInfinite` keeps one cache entry per page; `mutate` writes every page, and `getKey` stops when a later page would reuse an earlier key. `ttlEvict` drops unused keys.
 
 ## Architecture
 
