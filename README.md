@@ -4,7 +4,7 @@ Stale-while-revalidate data fetching for React. Same job as `useSWR`, rebuilt wi
 
 A skeg is the fin that keeps a hull tracking straight. This library does that for in-flight fetches.
 
-Explainer: [skegweb](https://github.com/Cincinnatus101010/skegweb)
+Explainer: [https://cincinnatus101010.github.io/skegweb/](https://cincinnatus101010.github.io/skegweb/)
 
 ```bash
 npm install skeg
