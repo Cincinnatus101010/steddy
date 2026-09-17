@@ -4,7 +4,7 @@ Stale-while-revalidate data fetching for React. Same job as `useSWR`, rebuilt wi
 
 The name is “steady” with intent: keep in-flight fetches on course so a stale response cannot roll the cache.
 
-Explainer: [https://cincinnatus101010.github.io/steddyweb/](https://cincinnatus101010.github.io/steddyweb/)
+Explainer: [https://cincinnatus101010.github.io/steddyweb/](https://cincinnatus101010.github.io/steddyweb/) · [Docs](https://cincinnatus101010.github.io/steddyweb/docs) · MCP: [`mcp/README.md`](mcp/README.md)
 
 ```bash
 npm install steddy
