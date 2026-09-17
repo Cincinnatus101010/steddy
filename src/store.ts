@@ -42,6 +42,16 @@ export function createStore(): Store {
     },
 
     set(key, entry) {
+      const existing = entries.get(key);
+      if (
+        existing &&
+        Object.is(existing.data, entry.data) &&
+        existing.error === entry.error &&
+        existing.timestamp === entry.timestamp &&
+        existing.isValidating === entry.isValidating
+      ) {
+        return;
+      }
       entries.set(key, entry);
       emit(key);
     },

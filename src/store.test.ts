@@ -29,6 +29,26 @@ describe("store", () => {
     expect(store.getSnapshot("user")).toBe(entry);
   });
 
+  it("does not notify when the entry is unchanged by reference", () => {
+    const store = createStore();
+    const callback = vi.fn();
+    const entry = {
+      data: { id: 1 },
+      error: undefined,
+      timestamp: 1,
+      isValidating: false,
+    };
+    store.set("user", entry);
+    store.subscribe("user", callback);
+    store.set("user", {
+      data: entry.data,
+      error: undefined,
+      timestamp: 1,
+      isValidating: false,
+    });
+    expect(callback).not.toHaveBeenCalled();
+  });
+
   it("notifies only subscribers of the changed key", () => {
     const store = createStore();
     const user = vi.fn();
