@@ -1,5 +1,5 @@
-import { cleanup, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, render, renderHook, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   clear,
   createRuntime,
@@ -92,7 +92,39 @@ describe("SteddyProvider", () => {
     expect(result.current.data).toEqual({ name: "Ada" });
     expect(client.store.get("user")?.timestamp).toBe(0);
   });
+
+  it("does not re-hydrate when cache is a new object with the same payload", () => {
+    const store = createStore();
+    const coordinator = createCoordinator(store);
+    const payload = { user: { data: { name: "Ada" }, timestamp: 0 } };
+    const fetcher = vi.fn(async () => ({ name: "client" }));
+    const { rerender } = render(
+      <SteddyProvider store={store} coordinator={coordinator} cache={payload}>
+        <HookProbe fetcher={fetcher} />
+      </SteddyProvider>,
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    rerender(
+      <SteddyProvider
+        store={store}
+        coordinator={coordinator}
+        cache={{ ...payload }}
+      >
+        <HookProbe fetcher={fetcher} />
+      </SteddyProvider>,
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
 });
+
+function HookProbe({
+  fetcher,
+}: {
+  fetcher: (key: string) => Promise<{ name: string }>;
+}) {
+  useSteddy("user", fetcher);
+  return null;
+}
 
 describe("dump", () => {
   it("omits empty keys, errors, and in-flight flags", () => {

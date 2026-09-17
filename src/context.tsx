@@ -4,7 +4,14 @@ import { defaultCoordinator, defaultStore } from "./defaults";
 import { createStore, type Store } from "./store";
 import type { CacheSnapshot, Key } from "./types";
 import { serializeKey } from "./key";
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from "react";
 
 export type SteddyRuntime = {
   store: Store;
@@ -41,16 +48,28 @@ export function SteddyProvider({
   cache?: CacheSnapshot;
   children: ReactNode;
 }) {
-  const value = useMemo<SteddyRuntime>(() => {
-    if (cache) {
-      hydrateAll(cache, store);
+  const hydratedFingerprint = useRef<string | null>(null);
+  useEffect(() => {
+    if (!cache) {
+      hydratedFingerprint.current = null;
+      return;
     }
-    return {
+    const fingerprint = JSON.stringify(cache);
+    if (hydratedFingerprint.current === fingerprint) {
+      return;
+    }
+    hydratedFingerprint.current = fingerprint;
+    hydrateAll(cache, store);
+  }, [cache, store]);
+
+  const value = useMemo<SteddyRuntime>(
+    () => ({
       store,
       coordinator,
       mutate: createMutate(store, coordinator),
-    };
-  }, [store, coordinator, cache]);
+    }),
+    [store, coordinator],
+  );
   return <SteddyContext.Provider value={value}>{children}</SteddyContext.Provider>;
 }
 
