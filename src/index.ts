@@ -19,6 +19,7 @@ export { pollingRevalidate } from "./plugins/polling";
 export { retryOnError } from "./plugins/retry";
 export { ttlEvict } from "./plugins/ttl";
 export { measurePerf } from "./plugins/measure";
+export { attachDefaults } from "./plugins/attachDefaults";
 
 export type {
   Key,
