@@ -1,6 +1,6 @@
 {
   "name": "steddy",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Stale-while-revalidate data fetching for React, with strict layer separation.",
   "type": "module",
   "sideEffects": false,
