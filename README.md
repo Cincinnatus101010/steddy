@@ -10,6 +10,34 @@ Explainer: [https://cincinnatus101010.github.io/steddyweb/](https://cincinnatus1
 npm install steddy
 ```
 
+## App root
+
+Wire an isolated runtime once. On the server, create a **new** runtime per request — do not rely on the module singleton.
+
+```tsx
+import { useEffect } from "react";
+import {
+  attachDefaults,
+  createRuntime,
+  SteddyProvider,
+} from "steddy";
+
+const runtime = createRuntime();
+
+export function AppProviders({ children }: { children: React.ReactNode }) {
+  useEffect(() => attachDefaults(runtime.coordinator, runtime.store), []);
+  return (
+    <SteddyProvider store={runtime.store} coordinator={runtime.coordinator}>
+      {children}
+    </SteddyProvider>
+  );
+}
+```
+
+For Next.js / RSC: fetch on the server, `dump(runtime.store)`, pass `cache={payload}` into `SteddyProvider` on the client. `hydrateAll` preserves timestamps from `dump` so dedup can skip an immediate refetch.
+
+## Hook
+
 ```ts
 import { useSteddy } from "steddy";
 
@@ -21,6 +49,7 @@ function Profile({ id }: { id: string }) {
       if (!response.ok) throw new Error("failed");
       return response.json();
     },
+    { keepPreviousData: true, staleTime: 60_000 },
   );
 
   if (error) return <p>Failed to load</p>;
@@ -35,17 +64,39 @@ function Profile({ id }: { id: string }) {
 }
 ```
 
-`key === null` skips fetching. Plugins (`focusRevalidate`, `reconnectRevalidate`, `pollingRevalidate`, `retryOnError`) are opt-in named exports.
+`key === null` skips fetching. Options: `{ suspense: true }`, `{ keepPreviousData: true }`, `{ staleTime }` (default 2000ms dedup window).
+
+## Helpers
 
 ```ts
-import { defaultCoordinator, focusRevalidate, hydrate, clear } from "steddy";
+import {
+  createRuntime,
+  dump,
+  hydrateAll,
+  prefetch,
+  clear,
+} from "steddy";
 
-hydrate("user", { name: "Ada" });
-focusRevalidate(defaultCoordinator);
-clear("user");
+// Route loader / link hover — no mounted hook required
+await prefetch(["user", id], fetchUser, runtime);
+
+clear("user", runtime);
 ```
 
-Need an isolated cache (tests, multiple trees, SSR): wrap with `SteddyProvider` and pass `createStore()` + `createCoordinator(store)`, or `createRuntime()`. Pass `cache={dump(store)}` across an RSC boundary. `{ suspense: true }` throws the in-flight waiter. `{ keepPreviousData: true }` keeps the last value on screen while a new key loads. `useSteddyInfinite` keeps one cache entry per page; `mutate` writes every page, and `getKey` stops when a later page would reuse an earlier key. `ttlEvict` drops unused keys. `measurePerf(coordinator)` subscribes to fetch events and returns `{ starts, aborts, dedups, writes, errors, totalMs }`. Run `npm run bench` for coordinator microbenchmarks.
+## Plugins (opt-in)
+
+```ts
+import { attachDefaults, focusRevalidate, measurePerf } from "steddy";
+
+// Or wire individually — pass store so focus/reconnect only hit subscribed keys
+focusRevalidate(coordinator, store);
+
+const perf = measurePerf(coordinator);
+```
+
+Also: `reconnectRevalidate`, `pollingRevalidate`, `retryOnError` (fetcher wrapper), `ttlEvict`, `useSteddyInfinite`.
+
+`measurePerf(coordinator)` returns `{ starts, aborts, dedups, writes, errors, totalMs }`. Run `npm run bench` for coordinator microbenchmarks.
 
 ## Architecture
 
