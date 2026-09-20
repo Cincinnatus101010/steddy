@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4
+
+- `useSteddy` options `{ refetchInterval }` and `{ refetchWhenHidden }` for mount-time polling that reads the latest interval each tick
+- `pollingRevalidate` accepts `{ whenVisible }` to skip polls while the document is hidden
+- Export `useSteddyRuntime` for manual `coordinator.revalidate` outside the hook
+
 ## 0.1.3
 
 - `prefetch`, `attachDefaults`, per-hook `staleTime`, `CacheEntry.hasData` for undefined payloads

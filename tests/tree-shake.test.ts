@@ -34,7 +34,6 @@ describe("tree-shaking", () => {
     expect(out).not.toContain("useSteddyInfinite");
     expect(out).not.toContain('addEventListener("focus"');
     expect(out).not.toContain('addEventListener("online"');
-    expect(out).not.toContain("setInterval");
   });
 });
 

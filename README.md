@@ -64,7 +64,7 @@ function Profile({ id }: { id: string }) {
 }
 ```
 
-`key === null` skips fetching. Options: `{ suspense: true }`, `{ keepPreviousData: true }`, `{ staleTime }` (default 2000ms dedup window).
+`key === null` skips fetching. Options: `{ suspense: true }`, `{ keepPreviousData: true }`, `{ staleTime }` (default 2000ms dedup window), `{ refetchInterval }` (poll while the hook is mounted; respects `staleTime`; skips when the tab is hidden unless `refetchWhenHidden: true`).
 
 ## Helpers
 

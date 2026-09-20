@@ -44,6 +44,10 @@ export function useSteddy<T>(
   const staleTime = options?.staleTime ?? DEDUP_WINDOW_MS;
   const staleTimeRef = useRef(staleTime);
   staleTimeRef.current = staleTime;
+  const refetchIntervalRef = useRef(options?.refetchInterval);
+  refetchIntervalRef.current = options?.refetchInterval;
+  const refetchWhenHiddenRef = useRef(options?.refetchWhenHidden ?? false);
+  refetchWhenHiddenRef.current = options?.refetchWhenHidden ?? false;
 
   if (serialized != null && key != null) {
     coordinator.register(
@@ -70,7 +74,35 @@ export function useSteddy<T>(
       if (!coordinator.isInFlight(serialized)) {
         void coordinator.revalidate(serialized).catch(() => {});
       }
+
+      let pollTimer: ReturnType<typeof setTimeout> | undefined;
+      let pollStopped = false;
+
+      const schedulePoll = () => {
+        const intervalMs = refetchIntervalRef.current;
+        if (intervalMs == null || intervalMs <= 0) return;
+        pollTimer = setTimeout(() => {
+          if (pollStopped) return;
+          if (
+            !refetchWhenHiddenRef.current &&
+            typeof document !== "undefined" &&
+            document.visibilityState !== "visible"
+          ) {
+            schedulePoll();
+            return;
+          }
+          void coordinator.revalidate(serialized).catch(() => {});
+          schedulePoll();
+        }, intervalMs);
+      };
+
+      schedulePoll();
+
       return () => {
+        pollStopped = true;
+        if (pollTimer !== undefined) {
+          clearTimeout(pollTimer);
+        }
         unsubscribe();
         if (store.subscriberCount(serialized) === 0) {
           coordinator.scheduleRelease(serialized);

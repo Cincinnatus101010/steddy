@@ -217,6 +217,32 @@ describe("useSteddy", () => {
     expect(defaultStore.get("empty")?.hasData).toBe(true);
   });
 
+  it("revalidates on refetchInterval while subscribed", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetcher = vi.fn(async () => "tick");
+      const { unmount } = renderHook(() =>
+        useSteddy("user", fetcher, { staleTime: 0, refetchInterval: 1000 }),
+      );
+      await act(async () => {
+        await vi.runOnlyPendingTimersAsync();
+      });
+      const baseline = fetcher.mock.calls.length;
+      expect(baseline).toBeGreaterThanOrEqual(1);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(fetcher.mock.calls.length).toBe(baseline + 1);
+      unmount();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+      expect(fetcher.mock.calls.length).toBe(baseline + 1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("honors staleTime before refetching on mount", async () => {
     defaultStore.set("user", {
       data: "cached",

@@ -42,6 +42,10 @@ export type UseSteddyOptions = {
   keepPreviousData?: boolean;
   /** Ms before a cached value is treated as stale. Defaults to DEDUP_WINDOW_MS (2000). */
   staleTime?: number;
+  /** While subscribed, revalidate on this interval (respects staleTime dedup). */
+  refetchInterval?: number;
+  /** When false (default), skip interval ticks while the document is hidden. */
+  refetchWhenHidden?: boolean;
 };
 
 export type CacheSnapshot = {
