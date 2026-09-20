@@ -14,7 +14,7 @@ The Steddy design doc left three questions open: cache GC, whether `mutate` exis
 
 ## Decision
 
-1. **No cache eviction in v1.** Entries stay in the store until the process dies or tests call `clear()`. Unmounting the last subscriber **aborts** an in-flight request (reliability checklist item 2) but does not delete cached data. LRU/TTL would require the store to know about time or usage policy; that can be a plugin later.
+1. **No cache eviction in v1 core.** Entries stay in the store until the process dies or tests call `clear()`. Unmounting the last subscriber **aborts** an in-flight request (reliability checklist item 2) but does not delete cached data. **Follow-up (shipped):** `ttlEvict` plugin + `attachDefaults` call `coordinator.evict` on a timer; policy stays out of the store.
 
 2. **Global `mutate` exists.** SWR’s imperative `mutate` is load-bearing for event handlers and non-React code. v1 exports `mutate(key, updater, options)` against a module singleton (`defaultStore` / `defaultCoordinator`). `useSteddy` returns a bound `mutate` from the current runtime (`SteddyProvider` or the default). `hydrate` and `clear` seed or drop keys on that same cache.
 
@@ -42,7 +42,7 @@ The Steddy design doc left three questions open: cache GC, whether `mutate` exis
 
 ## Consequences
 
-- Long-lived apps can accumulate unused keys; eviction is a follow-up.
+- Long-lived apps can accumulate unused keys unless **`ttlEvict`** (via `attachDefaults`) or manual `clear()` runs. Eviction is implemented as a plugin calling `coordinator.evict`; the store stays dumb.
 - Tests must `clear()` / `reset()` the singleton between cases.
 - UI code that wants a discriminated error must narrow `unknown` itself.
 

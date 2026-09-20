@@ -1,6 +1,7 @@
 import type { Coordinator } from "./coordinator";
 import { defaultCoordinator, defaultStore } from "./defaults";
 import { serializeKey } from "./key";
+import { warnIfMisscopedGlobalMutate } from "./providerScope";
 import type { Store } from "./store";
 import type { Key, MutateOptions, MutateUpdater } from "./types";
 
@@ -18,6 +19,7 @@ export function createMutate(store: Store, coordinator: Coordinator) {
     updater: MutateUpdater<T>,
     options?: MutateOptions,
   ): Promise<T | undefined> {
+    warnIfMisscopedGlobalMutate(store, defaultStore);
     const revalidate = options?.revalidate ?? true;
     const rollbackOnError = options?.rollbackOnError ?? true;
     const serialized = serializeKey(key);

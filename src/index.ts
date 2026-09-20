@@ -39,6 +39,7 @@ export type {
 export type { Store } from "./store";
 export type { Coordinator, CoordinatorEvent, RevalidateOptions } from "./coordinator";
 export type { SteddyRuntime } from "./context";
+export type { SteddyRuntimeActions } from "./runtimeActions";
 export type { UseSteddyInfiniteResult } from "./useSteddyInfinite";
 export type { PerfSnapshot, MeasureCoordinator } from "./plugins/measure";
 export type { PollingRevalidateOptions } from "./plugins/polling";

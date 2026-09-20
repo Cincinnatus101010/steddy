@@ -1,4 +1,4 @@
-# steddy
+# Steddy
 
 Stale-while-revalidate data fetching for React. Same job as `useSWR`, rebuilt with one-way layers so reliability bugs cannot leak across concerns.
 
@@ -34,7 +34,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 }
 ```
 
-For Next.js / RSC: fetch on the server, `dump(runtime.store)`, pass `cache={payload}` into `SteddyProvider` on the client. `hydrateAll` preserves timestamps from `dump` so dedup can skip an immediate refetch.
+See [`docs/nextjs.md`](docs/nextjs.md) for App Router SSR/hydrate flow.
 
 ## Hook
 
@@ -49,7 +49,13 @@ function Profile({ id }: { id: string }) {
       if (!response.ok) throw new Error("failed");
       return response.json();
     },
-    { keepPreviousData: true, staleTime: 60_000 },
+    {
+      keepPreviousData: true,
+      staleTime: 60_000,
+      dedupTime: 60_000,
+      fallbackData: { name: "…" },
+      onSuccess: (data) => console.log("loaded", data),
+    },
   );
 
   if (error) return <p>Failed to load</p>;
@@ -64,7 +70,31 @@ function Profile({ id }: { id: string }) {
 }
 ```
 
-`key === null` skips fetching. Options: `{ suspense: true }`, `{ keepPreviousData: true }`, `{ staleTime }` (default 2000ms dedup window), `{ refetchInterval }` (poll while the hook is mounted; respects `staleTime`; skips when the tab is hidden unless `refetchWhenHidden: true`).
+`key === null` skips fetching.
+
+| Option | Role |
+|--------|------|
+| `staleTime` | Dedup window for mount, focus, reconnect, manual `revalidate` (default 2000ms) |
+| `dedupTime` | Overrides `staleTime` for dedup only |
+| `refetchInterval` | Poll while mounted; **always fetches** on each tick (ignores dedup) |
+| `refetchWhenHidden` | When true, interval polls while the tab is hidden |
+| `fallbackData` | UI placeholder until the first fetch settles |
+| `onSuccess` / `onError` | Hook-only callbacks after fetch settle |
+| `keepPreviousData` | Keep last value while the key changes |
+| `suspense` | Throw in-flight promise, then error |
+
+**Polling:** use `refetchInterval` for live data. Dedup (`staleTime` / `dedupTime`) still applies to focus/reconnect; interval ticks do not.
+
+## Runtime helpers
+
+`createRuntime()` and `useSteddyRuntime()` expose:
+
+- `mutate(key, updater, options?)`
+- `revalidate(key, { force?: boolean })`
+- `revalidateMatching((serialized, key) => boolean, options?)`
+- `prefetch(key, fetcher)` · `clear(key?)`
+
+See [`docs/mutations.md`](docs/mutations.md). Prefer these (or hook `mutate`) over the global `import { mutate } from "steddy"` when using `SteddyProvider` — the export targets the module default cache.
 
 ## Helpers
 
@@ -75,11 +105,10 @@ import {
   hydrateAll,
   prefetch,
   clear,
+  createMutate,
 } from "steddy";
 
-// Route loader / link hover — no mounted hook required
 await prefetch(["user", id], fetchUser, runtime);
-
 clear("user", runtime);
 ```
 
@@ -88,15 +117,15 @@ clear("user", runtime);
 ```ts
 import { attachDefaults, focusRevalidate, measurePerf } from "steddy";
 
-// Or wire individually — pass store so focus/reconnect only hit subscribed keys
 focusRevalidate(coordinator, store);
-
 const perf = measurePerf(coordinator);
 ```
 
-Also: `reconnectRevalidate`, `pollingRevalidate`, `retryOnError` (fetcher wrapper), `ttlEvict`, `useSteddyInfinite`.
+Also: `reconnectRevalidate`, `pollingRevalidate`, `retryOnError`, `ttlEvict`, `useSteddyInfinite`.
 
-`measurePerf(coordinator)` returns `{ starts, aborts, dedups, writes, errors, totalMs }`. Run `npm run bench` for coordinator microbenchmarks.
+`attachDefaults` wires focus, reconnect, and TTL eviction (`ttlEvict` → `coordinator.evict`).
+
+Debugging: [`docs/debugging.md`](docs/debugging.md) · `npm run bench`
 
 ## Architecture
 

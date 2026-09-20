@@ -243,6 +243,55 @@ describe("useSteddy", () => {
     }
   });
 
+  it("refetchInterval fetches on schedule even when dedupTime is long", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetcher = vi.fn(async () => "tick");
+      renderHook(() =>
+        useSteddy("user", fetcher, { dedupTime: 60_000, refetchInterval: 1000 }),
+      );
+      await act(async () => {
+        await vi.runOnlyPendingTimersAsync();
+      });
+      const baseline = fetcher.mock.calls.length;
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(fetcher.mock.calls.length).toBe(baseline + 1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("shows fallbackData until the first fetch settles", async () => {
+    let resolve!: (value: string) => void;
+    const fetcher = vi.fn(
+      () =>
+        new Promise<string>((res) => {
+          resolve = res;
+        }),
+    );
+    const { result } = renderHook(() =>
+      useSteddy("user", fetcher, { fallbackData: "placeholder" }),
+    );
+    expect(result.current.data).toBe("placeholder");
+    expect(result.current.isLoading).toBe(false);
+    await act(async () => {
+      resolve("live");
+    });
+    await waitFor(() => {
+      expect(result.current.data).toBe("live");
+    });
+  });
+
+  it("calls onSuccess after a successful fetch", async () => {
+    const onSuccess = vi.fn();
+    renderHook(() => useSteddy("user", async () => "ok", { onSuccess }));
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledWith("ok", "user");
+    });
+  });
+
   it("honors staleTime before refetching on mount", async () => {
     defaultStore.set("user", {
       data: "cached",

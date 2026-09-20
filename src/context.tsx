@@ -1,9 +1,10 @@
 import { createCoordinator, type Coordinator } from "./coordinator";
-import { createMutate } from "./mutate";
 import { defaultCoordinator, defaultStore } from "./defaults";
+import { serializeKey } from "./key";
+import { setActiveProviderStore } from "./providerScope";
+import { bindRuntimeActions, type SteddyRuntimeActions } from "./runtimeActions";
 import { createStore, type Store } from "./store";
 import type { CacheSnapshot, Fetcher, Key } from "./types";
-import { serializeKey } from "./key";
 import {
   createContext,
   useContext,
@@ -16,24 +17,19 @@ import {
 export type SteddyRuntime = {
   store: Store;
   coordinator: Coordinator;
-  mutate: ReturnType<typeof createMutate>;
-};
+} & SteddyRuntimeActions;
+
+function buildRuntime(store: Store, coordinator: Coordinator): SteddyRuntime {
+  return { store, coordinator, ...bindRuntimeActions(store, coordinator) };
+}
 
 export function createRuntime(): SteddyRuntime {
   const store = createStore();
   const coordinator = createCoordinator(store);
-  return {
-    store,
-    coordinator,
-    mutate: createMutate(store, coordinator),
-  };
+  return buildRuntime(store, coordinator);
 }
 
-const defaultRuntime: SteddyRuntime = {
-  store: defaultStore,
-  coordinator: defaultCoordinator,
-  mutate: createMutate(defaultStore, defaultCoordinator),
-};
+const defaultRuntime: SteddyRuntime = buildRuntime(defaultStore, defaultCoordinator);
 
 const SteddyContext = createContext<SteddyRuntime>(defaultRuntime);
 
@@ -62,14 +58,12 @@ export function SteddyProvider({
     hydrateAll(cache, store);
   }, [cache, store]);
 
-  const value = useMemo<SteddyRuntime>(
-    () => ({
-      store,
-      coordinator,
-      mutate: createMutate(store, coordinator),
-    }),
-    [store, coordinator],
-  );
+  useEffect(() => {
+    setActiveProviderStore(store);
+    return () => setActiveProviderStore(null);
+  }, [store]);
+
+  const value = useMemo<SteddyRuntime>(() => buildRuntime(store, coordinator), [store, coordinator]);
   return <SteddyContext.Provider value={value}>{children}</SteddyContext.Provider>;
 }
 
@@ -135,34 +129,12 @@ export function hydrateAll(
 export async function prefetch<T>(
   key: Key,
   fetcher: Fetcher<T>,
-  runtime: Pick<SteddyRuntime, "store" | "coordinator"> = defaultRuntime,
+  runtime: SteddyRuntime = defaultRuntime,
 ): Promise<void> {
-  const serialized = serializeKey(key);
-  runtime.coordinator.register(serialized, key, fetcher as Fetcher<unknown>);
-  try {
-    await runtime.coordinator.revalidate(serialized);
-  } catch {
-    // Errors remain on the cache entry for a later hook mount.
-  } finally {
-    runtime.coordinator.unregister(serialized);
-  }
+  await runtime.prefetch(key, fetcher);
 }
 
 /** Drop one key, or the whole cache. Aborts in-flight work for deleted keys. */
-export function clear(
-  key?: Key,
-  runtime: Pick<SteddyRuntime, "store" | "coordinator"> = defaultRuntime,
-): void {
-  if (key === undefined) {
-    for (const active of runtime.coordinator.getRegisteredKeys()) {
-      runtime.coordinator.abort(active);
-    }
-    runtime.coordinator.reset();
-    runtime.store.clear();
-    return;
-  }
-  const serialized = serializeKey(key);
-  runtime.coordinator.abort(serialized);
-  runtime.coordinator.unregister(serialized);
-  runtime.store.delete(serialized);
+export function clear(key?: Key, runtime: SteddyRuntime = defaultRuntime): void {
+  runtime.clear(key);
 }

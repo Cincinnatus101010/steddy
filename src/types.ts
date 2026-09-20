@@ -37,15 +37,21 @@ export type MutateFn<T> = (
   options?: MutateOptions,
 ) => Promise<T | undefined>;
 
-export type UseSteddyOptions = {
+export type UseSteddyOptions<T = unknown> = {
   suspense?: boolean;
   keepPreviousData?: boolean;
-  /** Ms before a cached value is treated as stale. Defaults to DEDUP_WINDOW_MS (2000). */
+  /** Ms before a cached value is treated as fresh for dedup (mount, focus, manual revalidate). Default 2000. */
   staleTime?: number;
-  /** While subscribed, revalidate on this interval (respects staleTime dedup). */
+  /** Overrides `staleTime` for the coordinator dedup window only. */
+  dedupTime?: number;
+  /** While subscribed, revalidate on this interval (always fetches; ignores dedup). */
   refetchInterval?: number;
   /** When false (default), skip interval ticks while the document is hidden. */
   refetchWhenHidden?: boolean;
+  /** Shown until the first fetch settles; does not skip revalidation. */
+  fallbackData?: T;
+  onSuccess?: (data: T, key: Key) => void;
+  onError?: (error: unknown, key: Key) => void;
 };
 
 export type CacheSnapshot = {

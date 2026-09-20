@@ -33,6 +33,10 @@ export type Coordinator = {
     fetcher?: Fetcher<unknown>,
     options?: RevalidateOptions,
   ): Promise<void>;
+  revalidateMatching(
+    match: (serializedKey: string, key: Key) => boolean,
+    options?: RevalidateOptions,
+  ): Promise<void>;
   isInFlight(serializedKey: string): boolean;
   getInFlightPromise(serializedKey: string): Promise<void> | undefined;
   getRegisteredKeys(): string[];
@@ -242,6 +246,16 @@ export function createCoordinator(store: Store): Coordinator {
       } finally {
         settle();
       }
+    },
+
+    async revalidateMatching(match, options) {
+      const tasks: Promise<void>[] = [];
+      for (const [serialized, { key }] of registered) {
+        if (match(serialized, key)) {
+          tasks.push(coordinator.revalidate(serialized, undefined, options));
+        }
+      }
+      await Promise.all(tasks);
     },
 
     isInFlight(serializedKey) {

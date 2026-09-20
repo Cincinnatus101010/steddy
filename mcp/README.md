@@ -1,6 +1,6 @@
 # steddy-mcp
 
-Model Context Protocol server for the [Steddy](https://github.com/Cincinnatus101010/steddy) React data-fetching library. Exposes README, SPEC, changelog, agent layer rules, and curated setup topics.
+Model Context Protocol server for the [Steddy](https://github.com/Cincinnatus101010/steddy) React data-fetching library. Exposes README, SPEC, changelog, agent layer rules, Next.js/mutations/debugging guides, and curated setup topics.
 
 ## Build
 

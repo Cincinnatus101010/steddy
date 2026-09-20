@@ -1,4 +1,4 @@
-import { useCallback, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { DEDUP_WINDOW_MS } from "./coordinator";
 import { useSteddyRuntime } from "./context";
 import { keysShallowEqual, serializeKey } from "./key";
@@ -33,7 +33,7 @@ function useSerializedKey(key: Key | null): string | null {
 export function useSteddy<T>(
   key: Key | null,
   fetcher: Fetcher<T>,
-  options?: UseSteddyOptions,
+  options?: UseSteddyOptions<T>,
 ): UseSteddyResult<T> {
   const { store, coordinator, mutate: runtimeMutate } = useSteddyRuntime();
   const serialized = useSerializedKey(key);
@@ -41,20 +41,28 @@ export function useSteddy<T>(
   fetcherRef.current = fetcher;
   const keyRef = useRef(key);
   keyRef.current = key;
-  const staleTime = options?.staleTime ?? DEDUP_WINDOW_MS;
-  const staleTimeRef = useRef(staleTime);
-  staleTimeRef.current = staleTime;
+  const dedupMs = options?.dedupTime ?? options?.staleTime ?? DEDUP_WINDOW_MS;
+  const dedupMsRef = useRef(dedupMs);
+  dedupMsRef.current = dedupMs;
   const refetchIntervalRef = useRef(options?.refetchInterval);
   refetchIntervalRef.current = options?.refetchInterval;
   const refetchWhenHiddenRef = useRef(options?.refetchWhenHidden ?? false);
   refetchWhenHiddenRef.current = options?.refetchWhenHidden ?? false;
+  const fallbackDataRef = useRef(options?.fallbackData);
+  fallbackDataRef.current = options?.fallbackData;
+  const onSuccessRef = useRef(options?.onSuccess);
+  onSuccessRef.current = options?.onSuccess;
+  const onErrorRef = useRef(options?.onError);
+  onErrorRef.current = options?.onError;
+  const lastReportedError = useRef<unknown>(undefined);
+  const lastReportedSuccessTs = useRef<number | null>(null);
 
   if (serialized != null && key != null) {
     coordinator.register(
       serialized,
       key,
       (k, ctx) => fetcherRef.current(k, ctx),
-      { staleTime: staleTimeRef.current },
+      { staleTime: dedupMsRef.current },
     );
   }
 
@@ -68,7 +76,7 @@ export function useSteddy<T>(
         serialized,
         originalKey,
         (k, ctx) => fetcherRef.current(k, ctx),
-        { staleTime: staleTimeRef.current },
+        { staleTime: dedupMsRef.current },
       );
       const unsubscribe = store.subscribe(serialized, onStoreChange);
       if (!coordinator.isInFlight(serialized)) {
@@ -91,7 +99,7 @@ export function useSteddy<T>(
             schedulePoll();
             return;
           }
-          void coordinator.revalidate(serialized).catch(() => {});
+          void coordinator.revalidate(serialized, undefined, { force: true }).catch(() => {});
           schedulePoll();
         }, intervalMs);
       };
@@ -119,9 +127,30 @@ export function useSteddy<T>(
     return store.getSnapshot(serialized);
   }, [serialized, store]);
 
-  // Same snapshot on the server so a dumped cache can render without a mismatch.
-  // Source: https://react.dev/reference/react/useSyncExternalStore
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  useEffect(() => {
+    if (serialized == null || keyRef.current == null) {
+      return;
+    }
+    const currentKey = keyRef.current;
+    if (snapshot.error != null) {
+      if (lastReportedError.current !== snapshot.error) {
+        lastReportedError.current = snapshot.error;
+        onErrorRef.current?.(snapshot.error, currentKey);
+      }
+      return;
+    }
+    lastReportedError.current = undefined;
+    if (
+      snapshot.hasData &&
+      snapshot.timestamp !== 0 &&
+      lastReportedSuccessTs.current !== snapshot.timestamp
+    ) {
+      lastReportedSuccessTs.current = snapshot.timestamp;
+      onSuccessRef.current?.(snapshot.data as T, currentKey);
+    }
+  }, [serialized, snapshot.error, snapshot.hasData, snapshot.timestamp, snapshot.data]);
 
   const boundMutate = useCallback<MutateFn<T>>(
     (updater, mutateOptions) => {
@@ -141,7 +170,7 @@ export function useSteddy<T>(
     previousRef.current = { serialized, data: snapshot.data as T };
   }
 
-  const data =
+  let data =
     keepPreviousData &&
     serialized != null &&
     !snapshot.hasData &&
@@ -150,6 +179,15 @@ export function useSteddy<T>(
     previousRef.current.serialized !== serialized
       ? previousRef.current.data
       : (snapshot.data as T | undefined);
+
+  if (
+    data === undefined &&
+    fallbackDataRef.current !== undefined &&
+    !snapshot.hasData &&
+    snapshot.error == null
+  ) {
+    data = fallbackDataRef.current;
+  }
 
   if (options?.suspense && serialized != null) {
     if (snapshot.error != null) {

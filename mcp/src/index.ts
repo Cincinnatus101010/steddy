@@ -14,7 +14,7 @@ const TopicSchema = z.enum(DOC_IDS as [DocId, ...DocId[]]);
 
 const server = new McpServer({
   name: "steddy",
-  version: "0.1.0",
+  version: "0.2.0",
   websiteUrl: "https://cincinnatus101010.github.io/steddyweb/docs/api",
 });
 
@@ -43,7 +43,7 @@ server.registerTool(
   "steddy_get_topic",
   {
     description:
-      "Return full Steddy documentation for a topic (setup, hooks, SSR, plugins, architecture, etc.).",
+      "Return full Steddy documentation for a topic (setup, hooks, SSR, nextjs, mutations, debugging, plugins, architecture, etc.).",
     inputSchema: {
       topic: TopicSchema.describe("Documentation topic id"),
     },

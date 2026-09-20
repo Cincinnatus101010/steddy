@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0
+
+- **`useSteddyRuntime` / `createRuntime` helpers:** `revalidate`, `revalidateMatching`, `prefetch`, and `clear` on the same runtime as `mutate`
+- **`coordinator.revalidateMatching`** for bulk refetch of registered keys
+- **`fallbackData`**, **`dedupTime`**, **`onSuccess`**, **`onError`** hook options
+- **`refetchInterval` ticks use `{ force: true }`** so polling is independent of dedup window
+- **Dev warning** when global `mutate()` runs while a non-default `SteddyProvider` is active
+- **`createMutate`** documented and exported for non-React modules
+- Docs: Next.js recipe, mutations, debugging; MCP topics updated
+
 ## 0.1.4
 
 - `useSteddy` options `{ refetchInterval }` and `{ refetchWhenHidden }` for mount-time polling that reads the latest interval each tick

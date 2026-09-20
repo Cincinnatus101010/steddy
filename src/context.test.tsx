@@ -8,6 +8,7 @@ import {
   hydrateAll,
   prefetch,
   SteddyProvider,
+  useSteddyRuntime,
 } from "./context";
 import { createCoordinator } from "./coordinator";
 import { defaultCoordinator, defaultStore } from "./defaults";
@@ -136,6 +137,38 @@ function HookProbe({
   useSteddy("user", fetcher);
   return null;
 }
+
+describe("runtime actions", () => {
+  it("revalidateMatching uses the provider runtime", async () => {
+    const runtime = createRuntime();
+    const fetcher = vi.fn(async () => "fresh");
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <SteddyProvider store={runtime.store} coordinator={runtime.coordinator}>
+        {children}
+      </SteddyProvider>
+    );
+    renderHook(
+      () => {
+        useSteddy("keep", fetcher);
+        return useSteddyRuntime();
+      },
+      { wrapper },
+    );
+    await waitFor(() => {
+      expect(fetcher).toHaveBeenCalled();
+    });
+    fetcher.mockClear();
+    runtime.store.set("skip", {
+      data: "x",
+      hasData: true,
+      error: undefined,
+      timestamp: Date.now(),
+      isValidating: false,
+    });
+    await runtime.revalidateMatching((serialized) => serialized === "keep", { force: true });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe("dump", () => {
   it("omits empty keys, errors, and in-flight flags", () => {

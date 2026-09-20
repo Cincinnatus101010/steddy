@@ -230,4 +230,34 @@ describe("coordinator", () => {
     expect(coordinator.evict({ maxKeys: 1 })).toEqual(["a", "b"]);
     expect(store.keys()).toEqual(["c"]);
   });
+
+  it("revalidateMatching refetches registered keys that match", async () => {
+    const store = createStore();
+    const coordinator = createCoordinator(store);
+    const a = vi.fn(async () => "a");
+    const b = vi.fn(async () => "b");
+    coordinator.register("a", "a", a);
+    coordinator.register('["x",1]', ["x", 1], b);
+    store.set("a", {
+      data: "stale-a",
+      hasData: true,
+      error: undefined,
+      timestamp: Date.now(),
+      isValidating: false,
+    });
+    store.set('["x",1]', {
+      data: "stale-b",
+      hasData: true,
+      error: undefined,
+      timestamp: Date.now(),
+      isValidating: false,
+    });
+    await coordinator.revalidateMatching(
+      (serialized) => serialized === "a",
+      { force: true },
+    );
+    expect(a).toHaveBeenCalledTimes(1);
+    expect(b).not.toHaveBeenCalled();
+    expect(store.get("a")?.data).toBe("a");
+  });
 });
