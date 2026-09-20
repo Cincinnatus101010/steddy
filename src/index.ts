@@ -13,6 +13,7 @@ export {
   dump,
   prefetch,
   clear,
+  useSteddyRuntime,
 } from "./context";
 export { focusRevalidate } from "./plugins/focus";
 export { reconnectRevalidate } from "./plugins/reconnect";
@@ -40,3 +41,4 @@ export type { Coordinator, CoordinatorEvent, RevalidateOptions } from "./coordin
 export type { SteddyRuntime } from "./context";
 export type { UseSteddyInfiniteResult } from "./useSteddyInfinite";
 export type { PerfSnapshot, MeasureCoordinator } from "./plugins/measure";
+export type { PollingRevalidateOptions } from "./plugins/polling";
